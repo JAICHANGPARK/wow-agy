@@ -372,8 +372,12 @@ SlashCmdList["ANTIGRAVITYWOW"] = function(msg)
         ns:Print(ns.L.MSG_QUEUED)
     elseif cmd == "sync" or cmd == "reload" then
         ns:SafeReloadUI()
+    elseif cmd == "undo" then
+        if ns.UndoLastMacro then
+            ns:UndoLastMacro()
+        end
     elseif cmd == "help" then
-        ns:Print("Commands: /agy | /wowask <q> | /와우질문 <q> | /agy lua | /agy errors | /agy run <code> | /agy lang <code> | /agy sync")
+        ns:Print("Commands: /agy | /wowask <q> | /agy lua | /agy errors | /agy run <code> | /agy lang <code> | /agy undo | /agy sync")
     else
         ns:EnqueuePrompt(msg)
         if ns.ToggleMainFrame then

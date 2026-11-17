@@ -266,6 +266,14 @@ def _format_context_section(context: dict[str, Any] | None) -> str:
             f"- Mouseover UI Frame: {mouseover.get('name')} ({mouseover.get('objectType')}, parent={mouseover.get('parent')})"
         )
 
+    tooltips = context.get("linkedTooltips")
+    if isinstance(tooltips, list) and tooltips:
+        tip_lines = ["- Linked Item/Spell Tooltips (via C_TooltipInfo):"]
+        for t in tooltips[:6]:
+            if isinstance(t, dict):
+                tip_lines.append(f"  • [{t.get('id', '?')}] {t.get('tooltip', '')}")
+        parts.append("\n".join(tip_lines))
+
     return "\n".join(parts)
 
 

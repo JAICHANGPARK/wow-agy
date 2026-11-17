@@ -224,7 +224,8 @@ class TestAddonAndBridge(unittest.TestCase):
                 "player": {"name": "제이나", "level": 60, "className": "마법사"},
                 "target": {"name": "남작 리븐데어", "level": 62, "classification": "elite", "npcID": 10440},
                 "professions": [{"name": "마법부여", "rank": 295, "maxRank": 300}],
-                "equippedItems": [{"slot": "주장비", "name": "아케이나이트 사신의 도끼", "itemID": 12784}],
+                "equippedItems": [{"slot": "MainHand", "name": "아케이나이트 사신의 도끼", "itemID": 12784}],
+                "linkedTooltips": [{"id": "item:19019", "tooltip": "Thunderfury | +5 Agility | Chance on hit"}],
                 "quests": [{"questID": 5262, "level": 60, "title": "진실이 밝혀지다", "objectives": ["리븐데어 처치: 0/1"]}],
             },
             mode="qa",
@@ -232,6 +233,7 @@ class TestAddonAndBridge(unittest.TestCase):
         self.assertIn("남작 리븐데어", qa_prompt)
         self.assertIn("마법부여 (295/300)", qa_prompt)
         self.assertIn("아케이나이트 사신의 도끼", qa_prompt)
+        self.assertIn("Thunderfury", qa_prompt)
         self.assertIn("리븐데어 처치: 0/1", qa_prompt)
         self.assertIn("In-Game Q&A", qa_prompt)
 
@@ -243,6 +245,27 @@ class TestAddonAndBridge(unittest.TestCase):
         )
         self.assertIn("16001", code_prompt)
         self.assertIn("Foo.lua:10", code_prompt)
+
+    def test_multilingual_readme_docs_and_license_integrity(self) -> None:
+        doc_files = [
+            REPO_ROOT / "LICENSE",
+            REPO_ROOT / "README.md",
+            REPO_ROOT / "docs" / "README.ko.md",
+            REPO_ROOT / "docs" / "README.ja.md",
+            REPO_ROOT / "docs" / "README.zh-CN.md",
+        ]
+        for p in doc_files:
+            self.assertTrue(p.exists(), f"Missing documentation file: {p}")
+
+        # Verify relative links across all 4 README files resolve cleanly
+        link_re = re.compile(r"\[[^\]]+\]\(([^)#]+)\)")
+        for readme in doc_files[1:]:
+            text = readme.read_text(encoding="utf-8")
+            for rel_target in link_re.findall(text):
+                if rel_target.startswith(("http://", "https://", "mailto:")):
+                    continue
+                resolved = (readme.parent / rel_target).resolve()
+                self.assertTrue(resolved.exists(), f"Broken link {rel_target!r} in {readme.name}")
 
     def test_mcp_server_jsonrpc_tools(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

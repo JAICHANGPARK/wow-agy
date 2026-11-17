@@ -20,3 +20,7 @@ litert = [
 [project.scripts]
 wow-agy-daemon = "bridge.daemon:main"
 wow-agy-mcp = "bridge.mcp_server:serve_stdio"
+
+[tool.setuptools]
+packages = ["bridge"]
+

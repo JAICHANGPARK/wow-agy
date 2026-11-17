@@ -102,7 +102,7 @@ end
 
 function ns:CreateOrUpdateMacro(macroName, macroBody, pickupToCursor)
     if InCombatLockdown and InCombatLockdown() then
-        self:Print("|cffEA4335전투 중에는 매크로를 생성하거나 수정할 수 없습니다.|r")
+        self:Print(self.L.MSG_COMBAT_MACRO)
         return false
     end
 
@@ -114,35 +114,76 @@ function ns:CreateOrUpdateMacro(macroName, macroBody, pickupToCursor)
 
     local cleanBody = strtrim(macroBody or "")
     if cleanBody == "" then
-        self:Print("매크로 본문이 비어 있습니다.")
         return false
     end
     if #cleanBody > 255 then
-        self:Print("|cffFBBC05주의:|r 매크로 길이가 255자를 초과하여 앞 255자만 저장됩니다.")
         cleanBody = cleanBody:sub(1, 255)
+    end
+
+    -- Notify user clearly if the macro contains Lua script commands (/run or /script)
+    local lowerBody = cleanBody:lower()
+    if lowerBody:find("/run ") or lowerBody:find("/script ") then
+        self:Print("|cffFBBC05[Security Notice]|r Macro contains `/run` or `/script`. Review before clicking on your action bar (`/agy undo` to revert).")
     end
 
     local existingIdx = GetMacroIndexByName and GetMacroIndexByName(cleanName) or 0
     local macroIdx = 0
 
     if existingIdx and existingIdx > 0 then
+        local oldName, oldIcon, oldBody = nil, nil, nil
+        if GetMacroInfo then
+            oldName, oldIcon, oldBody = GetMacroInfo(existingIdx)
+        end
+        self.lastMacroBackup = {
+            existed = true,
+            name = oldName or cleanName,
+            icon = oldIcon or "INV_Misc_QuestionMark",
+            body = oldBody or "",
+        }
         macroIdx = EditMacro(existingIdx, cleanName, "INV_Misc_QuestionMark", cleanBody)
-        self:Print(string.format("매크로 |cffFBBC05[%s]|r 업데이트 완료!", cleanName))
+        self:Print(string.format("Macro |cffFBBC05[%s]|r updated! (Type |cff34A853/agy undo|r to revert)", cleanName))
     else
         local numGlobal = GetNumMacros and select(1, GetNumMacros()) or 0
         if numGlobal >= 120 then
-            self:Print("|cffEA4335공용 매크로 슬롯(120개)이 가득 찼습니다.|r")
+            self:Print("|cffEA4335General macro slots (120) are full.|r")
             return false
         end
+        self.lastMacroBackup = {
+            existed = false,
+            name = cleanName,
+        }
         macroIdx = CreateMacro(cleanName, "INV_Misc_QuestionMark", cleanBody, nil)
-        self:Print(string.format("매크로 |cffFBBC05[%s]|r 생성 완료!", cleanName))
+        self:Print(string.format("Macro |cffFBBC05[%s]|r created! (Type |cff34A853/agy undo|r to remove)", cleanName))
     end
 
     if pickupToCursor and macroIdx and macroIdx > 0 and PickupMacro then
         PickupMacro(macroIdx)
-        self:Print("커서에 매크로를 집었습니다. 액션바 원하는 칸에 클릭해 배치하세요!")
     end
 
+    return true
+end
+
+function ns:UndoLastMacro()
+    if InCombatLockdown and InCombatLockdown() then
+        self:Print(self.L.MSG_COMBAT_MACRO)
+        return false
+    end
+    local bak = self.lastMacroBackup
+    if not bak or not bak.name then
+        self:Print("No recent macro action to undo.")
+        return false
+    end
+    local idx = GetMacroIndexByName and GetMacroIndexByName(bak.name) or 0
+    if idx and idx > 0 then
+        if bak.existed then
+            EditMacro(idx, bak.name, bak.icon or "INV_Misc_QuestionMark", bak.body or "")
+            self:Print(string.format("Restored macro |cffFBBC05[%s]|r to previous content.", bak.name))
+        elseif DeleteMacro then
+            DeleteMacro(idx)
+            self:Print(string.format("Deleted newly created macro |cffFBBC05[%s]|r.", bak.name))
+        end
+    end
+    self.lastMacroBackup = nil
     return true
 end
 
@@ -199,13 +240,20 @@ end
 function ns:ShareLatestAnswerToGroup()
     local msg = self.latestAssistantMsg
     if not msg or not msg.content or msg.content == "" then
-        self:Print("공유할 최근 AI 답변이 없습니다.")
         return false
     end
 
     if not SendChatMessage then
         return false
     end
+
+    -- Anti-spam 5s cooldown per Blizzard performance/chat etiquette rules
+    local now = GetTime and GetTime() or 0
+    if self._lastShareAt and (now - self._lastShareAt) < 5 then
+        self:Print("Please wait a few seconds before sharing to chat again.")
+        return false
+    end
+    self._lastShareAt = now
 
     -- 색상 코드(|c........ 및 |r) 제거
     local plain = tostring(msg.content):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")

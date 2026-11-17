@@ -7,11 +7,62 @@ local addonName, ns = ...
 -- ============================================================================
 
 local EQUIP_SLOT_NAMES = {
-    [1] = "머리", [2] = "목", [3] = "어깨", [5] = "가슴",
-    [6] = "허리", [7] = "다리", [8] = "발", [9] = "손목",
-    [10] = "손", [11] = "반지1", [12] = "반지2", [13] = "장신구1",
-    [14] = "장신구2", [15] = "망토", [16] = "주장비", [17] = "보조장비", [18] = "원거리",
+    [1] = "Head", [2] = "Neck", [3] = "Shoulder", [5] = "Chest",
+    [6] = "Waist", [7] = "Legs", [8] = "Feet", [9] = "Wrist",
+    [10] = "Hands", [11] = "Finger1", [12] = "Finger2", [13] = "Trinket1",
+    [14] = "Trinket2", [15] = "Back", [16] = "MainHand", [17] = "OffHand", [18] = "Ranged",
 }
+
+ns.recentLinkTooltips = ns.recentLinkTooltips or {}
+
+local function StripColorCodes(s)
+    if type(s) ~= "string" then return "" end
+    return (s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|T.-|t", ""))
+end
+
+-- Official Blizzard C_TooltipInfo API: inspect item/spell/quest stats without hidden frames
+function ns:ExtractTooltipLines(hyperlink)
+    if type(hyperlink) ~= "string" or hyperlink == "" then
+        return nil
+    end
+    if not C_TooltipInfo or not C_TooltipInfo.GetHyperlink then
+        return nil
+    end
+
+    local ok, data = pcall(C_TooltipInfo.GetHyperlink, hyperlink)
+    if not ok or type(data) ~= "table" or type(data.lines) ~= "table" then
+        return nil
+    end
+
+    local linesOut = {}
+    for i = 1, math.min(#data.lines, 20) do
+        local row = data.lines[i]
+        if type(row) == "table" then
+            local left = StripColorCodes(row.leftText or "")
+            local right = StripColorCodes(row.rightText or "")
+            if left ~= "" and right ~= "" then
+                table.insert(linesOut, left .. "  (" .. right .. ")")
+            elseif left ~= "" then
+                table.insert(linesOut, left)
+            end
+        end
+    end
+
+    if #linesOut == 0 then
+        return nil
+    end
+    return table.concat(linesOut, " | ")
+end
+
+function ns:CacheHyperlinkTooltip(hyperlink)
+    local summary = self:ExtractTooltipLines(hyperlink)
+    if not summary then return end
+    local key = hyperlink:match("(%a+:%d+)") or hyperlink
+    self.recentLinkTooltips[key] = {
+        id = key,
+        tooltip = summary,
+    }
+end
 
 local function SafeGetMapCoords()
     if not C_Map or not C_Map.GetBestMapForUnit or not C_Map.GetPlayerMapPosition then
@@ -252,7 +303,15 @@ function ns:CollectContext(includeMouseover)
         professions = SafeGetProfessions(),
         target = SafeGetTargetInfo(),
         quests = SafeGetTrackedQuests(),
+        linkedTooltips = {},
     }
+
+    for _, itemTip in pairs(self.recentLinkTooltips or {}) do
+        table.insert(ctx.linkedTooltips, itemTip)
+        if #ctx.linkedTooltips >= 6 then
+            break
+        end
+    end
 
     if includeMouseover then
         ctx.mouseoverFrame = self:InspectMouseoverFrame()
@@ -270,6 +329,7 @@ function ns:AppendLinkToPrompt(link)
         end
         self._lastInsertedLink = link
         self._lastInsertedAt = GetTime and GetTime() or 0
+        self:CacheHyperlinkTooltip(link)
         local itemOrSpellId = link:match("(%a+:%d+)") or ""
         if itemOrSpellId ~= "" then
             box:Insert(" " .. link .. " [" .. itemOrSpellId .. "] ")
@@ -307,6 +367,9 @@ function ns:InsertCursorItemIntoPrompt()
         if C_Spell and C_Spell.GetSpellInfo and spellID then
             local sInfo = C_Spell.GetSpellInfo(spellID)
             spellName = (sInfo and sInfo.name) or ""
+        end
+        if spellID then
+            self:CacheHyperlinkTooltip("spell:" .. tostring(spellID))
         end
         self.promptEditBox:SetFocus()
         self.promptEditBox:Insert(string.format(" %s[spell:%s] ", spellName ~= "" and (spellName .. " ") or "", tostring(spellID)))
