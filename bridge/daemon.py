@@ -110,17 +110,23 @@ def write_clipboard(text: str) -> bool:
 
 
 def notify_desktop(title: str, message: str) -> None:
-    """Display a lightweight OS notification when Antigravity finishes a request."""
+    """Display a lightweight OS notification safely via argv (immune to AppleScript injection)."""
     if platform.system() == "Darwin":
-        safe_title = title.replace('"', '\\"')
-        safe_msg = message.replace('"', '\\"')[:120]
         subprocess.run(
             [
                 "osascript",
                 "-e",
-                f'display notification "{safe_msg}" with title "{safe_title}"',
+                "on run argv",
+                "-e",
+                "display notification (item 2 of argv) with title (item 1 of argv)",
+                "-e",
+                "end run",
+                "--",
+                str(title)[:80],
+                str(message)[:140],
             ],
             capture_output=True,
+            timeout=3,
             check=False,
         )
 
@@ -181,6 +187,10 @@ class CompanionDaemon:
             self.state_file.write_text(
                 json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
             )
+            try:
+                os.chmod(self.state_file, 0o600)
+            except OSError:
+                pass
         except Exception as exc:
             print(f"[WARN] 상태 저장 실패: {exc}")
 

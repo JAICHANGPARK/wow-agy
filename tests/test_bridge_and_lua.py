@@ -277,7 +277,7 @@ class TestAddonAndBridge(unittest.TestCase):
     def test_auth_dotenv_and_diagnostics(self) -> None:
         import os
 
-        self.assertEqual(mask_secret("AIzaSyABCDEF123456"), "AIza...3456")
+        self.assertEqual(mask_secret("DUMMY_KEY_ABCDEF1234"), "DUMM...1234")
         with tempfile.TemporaryDirectory() as tmp:
             env_path = Path(tmp) / ".env"
             write_env_key_safely(env_path, {"TEST_AGY_DUMMY_KEY": "secret_val_12345"})
