@@ -28,7 +28,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from bridge.agy_runner import AntigravityBridgeRunner
 from bridge.auth import diagnose_auth, load_dotenv_file, run_interactive_auth_setup
-from bridge.lua_serde import load_saved_variables_file, write_inbox_lua
+from bridge.lua_serde import LuaParseError, load_saved_variables_file, write_inbox_lua
 
 
 def auto_detect_wow_flavor_dir() -> Path | None:
@@ -158,7 +158,7 @@ class CompanionDaemon:
         self.state_file = REPO_ROOT / "bridge" / ".daemon_state.json"
         self.processed_ids: set[str] = set()
         self.inbox_messages: list[dict[str, Any]] = []
-        self.sv_mtimes: dict[str, float] = {}
+        self.sv_mtimes: dict[str, tuple[int, int]] = {}
         self.last_clipboard_sig: str = ""
         self._load_state()
 
@@ -215,20 +215,39 @@ class CompanionDaemon:
         sv_files = find_saved_variables_files(self.wow_flavor_dir, self.explicit_sv)
         for sv_path in sv_files:
             try:
-                mtime = sv_path.stat().st_mtime
+                st = sv_path.stat()
+                file_sig = (st.st_mtime_ns, st.st_size)
             except OSError:
                 continue
 
             key = str(sv_path)
-            if self.sv_mtimes.get(key) == mtime:
+            if self.sv_mtimes.get(key) == file_sig:
                 continue
-            self.sv_mtimes[key] = mtime
 
-            try:
-                parsed = load_saved_variables_file(sv_path)
-            except Exception as exc:
-                print(f"[ERROR] SavedVariables 파싱 오류 ({sv_path}): {exc}")
+            # Guard against mid-flush partial writes while WoW is executing /reload
+            parsed: dict[str, Any] | None = None
+            for attempt in range(2):
+                try:
+                    parsed = load_saved_variables_file(sv_path)
+                    break
+                except LuaParseError as exc:
+                    if attempt == 0:
+                        time.sleep(0.15)
+                        continue
+                    print(f"[WARN] SavedVariables write still in progress or malformed ({sv_path.name}): {exc} — will retry on next poll.")
+                except OSError as exc:
+                    print(f"[WARN] Could not read SavedVariables ({sv_path.name}): {exc}")
+                    break
+
+            if parsed is None:
                 continue
+
+            # Record file signature ONLY after successful parse so mid-flush files are never skipped!
+            try:
+                st_after = sv_path.stat()
+                self.sv_mtimes[key] = (st_after.st_mtime_ns, st_after.st_size)
+            except OSError:
+                self.sv_mtimes[key] = file_sig
 
             db = parsed.get("AntigravityWoWDB")
             if not isinstance(db, dict):
@@ -351,8 +370,11 @@ class CompanionDaemon:
 
         try:
             while True:
-                self.poll_saved_variables_once()
-                self.poll_clipboard_once()
+                try:
+                    self.poll_saved_variables_once()
+                    self.poll_clipboard_once()
+                except Exception as loop_exc:
+                    print(f"[ERROR] Unexpected error in poll cycle (recovering automatically): {loop_exc}")
                 time.sleep(self.poll_interval)
         except KeyboardInterrupt:
             print("\n[AGY Bridge] 브릿지 데몬을 종료합니다.")
@@ -432,6 +454,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="현재 Antigravity 인증 상태만 진단하고 종료",
     )
     p.add_argument(
+        "--timeout",
+        type=int,
+        default=180,
+        help="단일 AI 요청 최대 제한 시간(초, 기본값: 180)",
+    )
+    p.add_argument(
         "--no-clipboard",
         action="store_true",
         help="무-리로드 클립보드 브릿지 감시 비활성화",
@@ -479,6 +507,7 @@ def main() -> int:
         use_vertex=args.vertex,
         vertex_project=args.project,
         vertex_location=args.location,
+        timeout_sec=args.timeout,
     )
 
     if args.check_auth:

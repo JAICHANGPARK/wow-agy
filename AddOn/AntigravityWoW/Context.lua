@@ -76,8 +76,8 @@ local function SafeGetMapCoords()
     if not okPos or not pos or not pos.GetXY then
         return mapID, nil, nil
     end
-    local x, y = pos:GetXY()
-    if x and y then
+    local okXY, x, y = pcall(pos.GetXY, pos)
+    if okXY and type(x) == "number" and type(y) == "number" and not ns:IsSecretValue(x) and not ns:IsSecretValue(y) then
         return mapID, math.floor(x * 10000) / 100, math.floor(y * 10000) / 100
     end
     return mapID, nil, nil

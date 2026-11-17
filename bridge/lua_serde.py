@@ -8,7 +8,9 @@ Handles:
 
 from __future__ import annotations
 
+import math
 import os
+import re
 import tempfile
 import time
 from pathlib import Path
@@ -159,9 +161,12 @@ class _LuaTokenizer:
         while self.pos < n and (s[self.pos].isalnum() or s[self.pos] in ".+-"):
             self.pos += 1
         raw = s[start : self.pos]
-        if any(c in raw for c in (".", "e", "E")) and not raw.lower().startswith("0x"):
-            return float(raw)
-        return int(raw, 0)
+        try:
+            if any(c in raw for c in (".", "e", "E")) and not raw.lower().startswith("0x"):
+                return float(raw)
+            return int(raw, 0)
+        except ValueError as exc:
+            raise LuaParseError(f"Invalid Lua number {raw!r} at pos {start}") from exc
 
     def parse_table(self) -> dict[Any, Any] | list[Any]:
         self.consume_char("{")
@@ -265,6 +270,9 @@ def load_saved_variables_file(path: str | Path) -> dict[str, Any]:
     return parse_saved_variables(content)
 
 
+_CTRL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
 def lua_escape_string(s: str) -> str:
     escaped = (
         s.replace("\\", "\\\\")
@@ -273,6 +281,7 @@ def lua_escape_string(s: str) -> str:
         .replace("\n", "\\n")
         .replace("\t", "\\t")
     )
+    escaped = _CTRL_CHAR_RE.sub(lambda m: f"\\{ord(m.group(0)):03d}", escaped)
     return f'"{escaped}"'
 
 
@@ -285,6 +294,8 @@ def dump_lua_value(val: Any, indent: int = 0) -> str:
     if isinstance(val, bool):
         return "true" if val else "false"
     if isinstance(val, (int, float)):
+        if isinstance(val, float) and (math.isnan(val) or math.isinf(val)):
+            return "0"
         return str(val)
     if isinstance(val, str):
         return lua_escape_string(val)

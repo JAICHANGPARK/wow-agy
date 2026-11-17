@@ -394,10 +394,12 @@ class AntigravityBridgeRunner:
         use_vertex: bool = False,
         vertex_project: str | None = None,
         vertex_location: str | None = None,
+        timeout_sec: int = 180,
     ) -> None:
         self.addons_dir = addons_dir.resolve()
         self.agents_md_path = agents_md_path.resolve()
         self.continue_session = continue_session
+        self.timeout_sec = max(10, int(timeout_sec))
         self.litert_model_path = (
             os.path.expanduser(litert_model_path) if litert_model_path else None
         )
@@ -452,6 +454,42 @@ class AntigravityBridgeRunner:
                 changed.append(rel_path)
         return sorted(changed)
 
+    @staticmethod
+    def _format_friendly_error(exc: BaseException, locale: str | None, timeout_sec: int) -> str:
+        loc = (locale or "enUS").strip()
+        msg = str(exc)
+        low = msg.lower()
+
+        is_ko = loc == "koKR"
+        if isinstance(exc, (subprocess.TimeoutExpired, asyncio.TimeoutError, TimeoutError)):
+            if is_ko:
+                return f"|cffEA4335[응답 시간 초과]|r AI 응답이 {timeout_sec}초 내에 완료되지 않았습니다. 질문을 조금 더 짧게 나누거나 `--timeout` 값을 늘려 다시 시도해 주세요."
+            return f"|cffEA4335[Timeout]|r Agent did not finish within {timeout_sec}s. Try a shorter prompt or increase `--timeout`."
+
+        if "429" in low or "quota" in low or "rate limit" in low or "resource_exhausted" in low:
+            if is_ko:
+                return "|cffEA4335[할당량/요청 한도 초과]|r 현재 모델의 API 요청 한도(Quota/Rate Limit)에 도달했습니다. 잠시 후 다시 시도하거나 계정 할당량을 확인해 주세요."
+            return "|cffEA4335[Quota / Rate Limit]|r API rate limit or quota reached. Please wait a moment and try again."
+
+        if "401" in low or "403" in low or "api_key_invalid" in low or "unauthenticated" in low or "permission_denied" in low:
+            if is_ko:
+                return "|cffEA4335[인증 실패]|r Antigravity 인증이 만료되었거나 API 키가 유효하지 않습니다. 터미널에서 `uv run wow-agy-daemon --setup-auth` 를 실행해 재인증해 주세요."
+            return "|cffEA4335[Authentication Error]|r Invalid or expired credentials. Run `uv run wow-agy-daemon --setup-auth` in your terminal."
+
+        if isinstance(exc, ConnectionError) or "connection refused" in low or "name or service not known" in low or "network" in low:
+            if is_ko:
+                return "|cffEA4335[네트워크/로컬 서버 연결 실패]|r 인터넷 연결 또는 로컬 모델 서버(Ollama/LM Studio) 실행 상태를 확인해 주세요."
+            return "|cffEA4335[Connection Failed]|r Check your internet connection or verify that your local model server (Ollama/LM Studio) is running."
+
+        if isinstance(exc, FileNotFoundError):
+            if is_ko:
+                return f"|cffEA4335[파일/실행기 누락]|r 필요한 실행 파일이나 모델 경로를 찾을 수 없습니다: {msg[:240]}"
+            return f"|cffEA4335[File Not Found]|r Missing binary or model file: {msg[:240]}"
+
+        if is_ko:
+            return f"|cffEA4335[예기치 않은 오류]|r ({type(exc).__name__}) {msg[:300]}"
+        return f"|cffEA4335[Unexpected Error]|r ({type(exc).__name__}) {msg[:300]}"
+
     def run_turn(
         self,
         prompt: str,
@@ -470,12 +508,16 @@ class AntigravityBridgeRunner:
         )
         before = self._snapshot_mtimes()
 
-        if self.backend == "cli":
-            raw_reply = self._run_via_cli(enriched)
-        elif self.backend == "sdk":
-            raw_reply = asyncio.run(self._run_via_sdk(enriched, context, errors))
-        else:
-            raise ValueError(f"Unknown backend: {self.backend}")
+        try:
+            if self.backend == "cli":
+                raw_reply = self._run_via_cli(enriched, locale=locale)
+            elif self.backend == "sdk":
+                raw_reply = asyncio.run(self._run_via_sdk(enriched, context, errors, locale=locale))
+            else:
+                raise ValueError(f"Unknown backend: {self.backend}")
+        except Exception as exc:
+            err_reply = self._format_friendly_error(exc, locale, self.timeout_sec)
+            return AgentTurnResult(text=err_reply, raw_text=err_reply)
 
         after = self._snapshot_mtimes()
         result = extract_artifacts_from_reply(raw_reply)
@@ -483,10 +525,10 @@ class AntigravityBridgeRunner:
         self.has_first_turn = True
         return result
 
-    def _run_via_cli(self, enriched_prompt: str) -> str:
+    def _run_via_cli(self, enriched_prompt: str, locale: str | None = None) -> str:
         if not self.agy_bin or not Path(self.agy_bin).exists():
-            raise RuntimeError(
-                "Antigravity CLI (`agy`) not found. Install `agy` or pass `--backend sdk`."
+            raise FileNotFoundError(
+                "Antigravity CLI (`agy`) not found. Run `uv run wow-agy-daemon --setup-auth` or pass `--backend sdk`."
             )
 
         cmd = [
@@ -501,26 +543,36 @@ class AntigravityBridgeRunner:
         if self.continue_session and self.has_first_turn:
             cmd.append("--continue")
 
-        proc = subprocess.run(
-            cmd,
-            cwd=str(self.addons_dir),
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
+        try:
+            proc = subprocess.run(
+                cmd,
+                cwd=str(self.addons_dir),
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=self.timeout_sec,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            return self._format_friendly_error(exc, locale, self.timeout_sec)
+
         if proc.returncode != 0:
             stderr_msg = (proc.stderr or "").strip()
             stdout_msg = (proc.stdout or "").strip()
-            return f"|cffEA4335[AGY CLI Error]|r (exit {proc.returncode})\n{stderr_msg or stdout_msg}"
-        return (proc.stdout or "").strip()
+            detail = stderr_msg or stdout_msg
+            if any(tok in detail.lower() for tok in ("401", "403", "unauthenticated", "login", "429", "quota")):
+                return self._format_friendly_error(RuntimeError(detail), locale, self.timeout_sec)
+            return f"|cffEA4335[AGY CLI Error]|r (exit {proc.returncode})\n{detail[:400]}"
+        out = (proc.stdout or "").strip()
+        return out or "|cffFBBC05[Notice]|r Agent completed without text output."
 
     async def _run_via_sdk(
         self,
         enriched_prompt: str,
         context: dict[str, Any] | None,
         errors: list[dict[str, Any]] | None,
+        locale: str | None = None,
     ) -> str:
         try:
             from google.antigravity import (  # type: ignore[import-not-found]
@@ -615,8 +667,17 @@ class AntigravityBridgeRunner:
             )
 
         chunks: list[str] = []
-        async with Agent(config=config) as agent:
-            response = await agent.chat(enriched_prompt)
-            async for token in response:
-                chunks.append(token)
-        return "".join(chunks).strip()
+
+        async def _chat_with_timeout() -> None:
+            async with Agent(config=config) as agent:
+                response = await agent.chat(enriched_prompt)
+                async for token in response:
+                    chunks.append(token)
+
+        try:
+            await asyncio.wait_for(_chat_with_timeout(), timeout=float(self.timeout_sec))
+        except Exception as exc:
+            return self._format_friendly_error(exc, locale, self.timeout_sec)
+
+        out = "".join(chunks).strip()
+        return out or "|cffFBBC05[Notice]|r Agent completed without text output."

@@ -172,6 +172,7 @@ function ns:ShowClipboardModal(mode, initialText)
             local raw = m.boxWrap.editBox:GetText()
             local luaCode = ns:ExtractLuaFromClipboard(raw)
             if luaCode == "" then
+                ns:Print(ns.L.ERR_CLIP_EMPTY)
                 return
             end
             if ns.codeEditorBox then
@@ -184,7 +185,7 @@ function ns:ShowClipboardModal(mode, initialText)
             m:Hide()
             ns:ToggleMainFrame(true, 2)
             if not ok then
-                ns:Print("|cffEA4335Error:|r " .. tostring(out))
+                ns:Print("|cffEA4335" .. tostring(out) .. "|r")
             end
         end)
         m.runBtn:SetPoint("LEFT", m.showChatBtn, "RIGHT", 8, 0)
@@ -192,6 +193,10 @@ function ns:ShowClipboardModal(mode, initialText)
         m.toEditorBtn = CreateFlatButton(m, self.L.BTN_TO_EDITOR, 105, 28, COLORS.btnNormal, function()
             local raw = m.boxWrap.editBox:GetText()
             local luaCode = ns:ExtractLuaFromClipboard(raw)
+            if luaCode == "" then
+                ns:Print(ns.L.ERR_CLIP_EMPTY)
+                return
+            end
             if ns.codeEditorBox then
                 ns.codeEditorBox:SetText(luaCode)
             end
@@ -555,6 +560,7 @@ function ns:BuildMainFrame()
     refs.pinBtn = CreateFlatButton(actionRow, L.BTN_WAYPOINT, 92, 24, COLORS.btnPurple, function()
         local msg = ns.latestAssistantMsg
         if not msg or not msg.waypoint then
+            ns:Print(ns.L.ERR_NO_WAYPOINT)
             return
         end
         ns:SetMapWaypoint(msg.waypoint)
@@ -563,19 +569,25 @@ function ns:BuildMainFrame()
 
     refs.quickRunBtn = CreateFlatButton(actionRow, L.BTN_RUN_REPLY, 96, 24, COLORS.btnGreen, function()
         local code = (ns.latestAssistantMsg and ns.latestAssistantMsg.code) or ns.latestInboxCode or ""
-        if code == "" then return end
+        if code == "" then
+            ns:Print(ns.L.ERR_NO_CODE)
+            return
+        end
         local ok, out = ns:RunLuaSnippet(code)
         if ok then
             ns:Print("OK:\n" .. out)
         else
-            ns:Print("|cffEA4335Error:|r " .. tostring(out))
+            ns:Print("|cffEA4335" .. tostring(out) .. "|r")
         end
     end)
     refs.quickRunBtn:SetPoint("LEFT", refs.pinBtn, "RIGHT", 5, 0)
 
     refs.openInEditorBtn = CreateFlatButton(actionRow, L.BTN_TO_EDITOR, 80, 24, COLORS.btnNormal, function()
         local code = (ns.latestAssistantMsg and ns.latestAssistantMsg.code) or ns.latestInboxCode or ""
-        if code == "" then return end
+        if code == "" then
+            ns:Print(ns.L.ERR_NO_CODE)
+            return
+        end
         ns.codeEditorBox:SetText(code)
         ns:SelectTab(2)
     end)
@@ -583,7 +595,10 @@ function ns:BuildMainFrame()
 
     refs.makeMacroBtn = CreateFlatButton(actionRow, L.BTN_MAKE_MACRO, 88, 24, COLORS.btnWarn, function()
         local msg = ns.latestAssistantMsg
-        if not msg or not msg.macroBody or msg.macroBody == "" then return end
+        if not msg or not msg.macroBody or msg.macroBody == "" then
+            ns:Print(ns.L.ERR_NO_MACRO)
+            return
+        end
         ns:CreateOrUpdateMacro(msg.macroName or "AGY_Macro", msg.macroBody, true)
     end)
     refs.makeMacroBtn:SetPoint("LEFT", refs.openInEditorBtn, "RIGHT", 5, 0)

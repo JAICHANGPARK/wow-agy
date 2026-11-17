@@ -12,6 +12,7 @@ from pathlib import Path
 from bridge.agy_runner import (
     LOCALE_CONFIG,
     AgentTurnResult,
+    AntigravityBridgeRunner,
     extract_artifacts_from_reply,
     format_enriched_prompt,
     format_markdown_for_wow_chat,
@@ -286,6 +287,59 @@ class TestAddonAndBridge(unittest.TestCase):
         st_local = diagnose_auth(backend="sdk", agy_bin=None, local_openai_url="http://localhost:11434/v1")
         self.assertTrue(st_local.ok)
         self.assertEqual(st_local.method, "sdk-local-openai")
+
+    def test_exception_handling_midflush_recovery_and_control_char_serde(self) -> None:
+        # 1) Control bytes & NaN/Inf in Lua serializer must produce valid parseable Lua
+        weird_payload = {
+            "ctrl": "null\x00bell\x07tab\tend",
+            "bad_float": float("nan"),
+            "inf_float": float("inf"),
+        }
+        dumped = "TestVar = " + dump_lua_value(weird_payload)
+        reparsed = parse_saved_variables(dumped)["TestVar"]
+        self.assertEqual(reparsed["ctrl"], "null\x00bell\x07tab\tend")
+        self.assertEqual(reparsed["bad_float"], 0)
+        self.assertEqual(reparsed["inf_float"], 0)
+
+        # 2) Friendly localized error messages for Timeout, Quota 429, Auth 401, ConnectionError
+        ko_timeout = AntigravityBridgeRunner._format_friendly_error(TimeoutError("timed out"), "koKR", 30)
+        self.assertIn("응답 시간 초과", ko_timeout)
+        ko_quota = AntigravityBridgeRunner._format_friendly_error(RuntimeError("HTTP 429 RESOURCE_EXHAUSTED"), "koKR", 30)
+        self.assertIn("할당량", ko_quota)
+        en_auth = AntigravityBridgeRunner._format_friendly_error(RuntimeError("401 API_KEY_INVALID"), "enUS", 30)
+        self.assertIn("Authentication Error", en_auth)
+        ko_conn = AntigravityBridgeRunner._format_friendly_error(ConnectionError("Connection refused"), "koKR", 30)
+        self.assertIn("연결 실패", ko_conn)
+
+        # 3) Mid-flush partial SavedVariables write recovery
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            addons_dir = tmp_path / "Interface" / "AddOns"
+            inbox_path = addons_dir / "AntigravityWoW" / "Inbox.lua"
+            sv_path = tmp_path / "WTF" / "Account" / "ACC" / "SavedVariables" / "AntigravityWoW.lua"
+            sv_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Truncated mid-write file!
+            sv_path.write_text('AntigravityWoWDB = { ["outbox"] = { { ["id"] = "req-1"', encoding="utf-8")
+            daemon = CompanionDaemon(
+                addons_dir=addons_dir,
+                inbox_path=inbox_path,
+                wow_flavor_dir=tmp_path,
+                explicit_sv=sv_path,
+                runner=FakeRunner(),  # type: ignore[arg-type]
+                enable_clipboard=False,
+            )
+            daemon.state_file = tmp_path / ".state.json"
+
+            # Poll during mid-write must NOT crash and must NOT permanently mark mtime as processed!
+            self.assertEqual(daemon.poll_saved_variables_once(), 0)
+
+            # Now WoW finishes writing the file: next poll MUST succeed!
+            sv_path.write_text(
+                'AntigravityWoWDB = { ["outbox"] = { { ["id"] = "req-1", ["status"] = "pending", ["prompt"] = "테스트" } } }',
+                encoding="utf-8",
+            )
+            self.assertEqual(daemon.poll_saved_variables_once(), 1)
 
     def test_mcp_server_jsonrpc_tools(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

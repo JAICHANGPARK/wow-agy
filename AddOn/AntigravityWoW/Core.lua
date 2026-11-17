@@ -42,7 +42,32 @@ local function CopyDefaults(src, dst)
 end
 
 function ns:Print(msg)
-    DEFAULT_CHAT_FRAME:AddMessage("|cff4285F4[Antigravity]|r " .. tostring(msg))
+    local text = self:SafeToString(msg, "")
+    if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
+        pcall(DEFAULT_CHAT_FRAME.AddMessage, DEFAULT_CHAT_FRAME, "|cff4285F4[Antigravity]|r " .. text)
+    end
+end
+
+-- WoW Forever (16001 / Midnight) C_Secrets protection helper
+function ns:IsSecretValue(val)
+    if issecretvalue then
+        local ok, isSec = pcall(issecretvalue, val)
+        if ok and isSec then
+            return true
+        end
+    end
+    return false
+end
+
+function ns:SafeToString(val, fallback)
+    if val == nil or self:IsSecretValue(val) then
+        return fallback or ""
+    end
+    local ok, str = pcall(tostring, val)
+    if not ok or self:IsSecretValue(str) then
+        return fallback or ""
+    end
+    return str
 end
 
 function ns:FormatTimestamp()
@@ -85,23 +110,24 @@ function ns:IngestInbox()
     local latestCode = nil
 
     for _, msg in ipairs(payload.messages) do
-        if msg.id and not seen[msg.id] then
-            local contentText = msg.content or ""
+        if type(msg) == "table" and type(msg.id) == "string" and msg.id ~= "" and not seen[msg.id] then
+            local contentText = self:SafeToString(msg.content, "")
             if msg.id == "welcome-001" and self.L and self.L.WELCOME_BODY then
                 contentText = self.L.WELCOME_BODY
             end
+            local safeFiles = type(msg.filesChanged) == "table" and msg.filesChanged or {}
             table.insert(self.db.history, {
                 id = msg.id,
-                requestId = msg.requestId or "",
-                role = msg.role or "assistant",
-                timestamp = msg.timestamp or payload.updatedAt or self:FormatTimestamp(),
-                summary = msg.summary or "",
+                requestId = self:SafeToString(msg.requestId, ""),
+                role = self:SafeToString(msg.role, "assistant"),
+                timestamp = self:SafeToString(msg.timestamp, payload.updatedAt or self:FormatTimestamp()),
+                summary = self:SafeToString(msg.summary, ""),
                 content = contentText,
-                code = msg.code or "",
-                macroName = msg.macroName or "",
-                macroBody = msg.macroBody or "",
-                waypoint = msg.waypoint,
-                filesChanged = msg.filesChanged or {},
+                code = self:SafeToString(msg.code, ""),
+                macroName = self:SafeToString(msg.macroName, ""),
+                macroBody = self:SafeToString(msg.macroBody, ""),
+                waypoint = type(msg.waypoint) == "table" and msg.waypoint or nil,
+                filesChanged = safeFiles,
             })
             seen[msg.id] = true
             self.db.lastInboxMessageId = msg.id

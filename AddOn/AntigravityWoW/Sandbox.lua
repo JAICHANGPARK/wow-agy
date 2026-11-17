@@ -2,36 +2,65 @@ local addonName, ns = ...
 
 -- ============================================================================
 -- Sandbox.lua
--- 인게임 Live Lua 즉시 실행기(loadstring), 매크로 빌더, 지도 핀(Waypoint), 채팅 공유 및
--- 리로드 없는 클립보드 브릿지(AGY_REQ / AGY_RES — 와우 Q&A 답변 + 코딩 + 매크로 겸용)
+-- Hardened Live Lua Runner (loadstring), Macro Builder with Undo & pcalls,
+-- Map Waypoint Setter, Anti-Spam Chat Share, and JSON-Safe Clipboard Codec
 -- ============================================================================
 
-local function SerializeValueCompact(val, depth)
+local MAX_PRINT_LINES = 200
+
+local function EscapeJsonString(s)
+    local str = ns:SafeToString(s, "")
+    str = str
+        :gsub("\\", "\\\\")
+        :gsub('"', '\\"')
+        :gsub("\r", "")
+        :gsub("\n", "\\n")
+        :gsub("\t", "\\t")
+        :gsub("[%z\1-\31]", function(c)
+            return string.format("\\u%04x", string.byte(c))
+        end)
+    return '"' .. str .. '"'
+end
+
+local function SerializeValueCompact(val, depth, seen)
     depth = depth or 0
-    if depth > 3 then
+    if depth > 4 or ns:IsSecretValue(val) then
         return '"..."'
     end
     local t = type(val)
     if t == "string" then
-        local escaped = val:gsub("\\", "\\\\"):gsub('"', '\\"'):gsub("\n", "\\n"):gsub("\r", "")
-        return '"' .. escaped .. '"'
-    elseif t == "number" or t == "boolean" then
+        return EscapeJsonString(val)
+    elseif t == "number" then
+        -- Guard against inf / -inf / nan which are invalid in strict JSON
+        if val ~= val or val == math.huge or val == -math.huge then
+            return "0"
+        end
+        return tostring(val)
+    elseif t == "boolean" then
         return tostring(val)
     elseif t == "table" then
+        seen = seen or {}
+        if seen[val] then
+            return '"[Circular]"'
+        end
+        seen[val] = true
+
         local isArray = (#val > 0)
         local parts = {}
         if isArray then
             for i = 1, math.min(#val, 20) do
-                table.insert(parts, SerializeValueCompact(val[i], depth + 1))
+                table.insert(parts, SerializeValueCompact(val[i], depth + 1, seen))
             end
+            seen[val] = nil
             return "[" .. table.concat(parts, ",") .. "]"
         else
             for k, v in pairs(val) do
-                if type(k) == "string" or type(k) == "number" then
-                    local keyStr = tostring(k):gsub('"', '\\"')
-                    table.insert(parts, '"' .. keyStr .. '":' .. SerializeValueCompact(v, depth + 1))
+                if (type(k) == "string" or type(k) == "number") and not ns:IsSecretValue(k) then
+                    local keyJson = EscapeJsonString(tostring(k))
+                    table.insert(parts, keyJson .. ":" .. SerializeValueCompact(v, depth + 1, seen))
                 end
             end
+            seen[val] = nil
             return "{" .. table.concat(parts, ",") .. "}"
         end
     end
@@ -39,31 +68,39 @@ local function SerializeValueCompact(val, depth)
 end
 
 function ns:RunLuaSnippet(codeStr)
-    if not codeStr or strtrim(codeStr) == "" then
-        return false, "실행할 Lua 코드가 비어 있습니다."
+    if type(codeStr) ~= "string" or strtrim(codeStr) == "" then
+        return false, self.L.ERR_EMPTY_LUA
     end
 
     local loader = loadstring
     if not loader then
-        return false, "현재 클라이언트에서 loadstring을 사용할 수 없습니다."
+        return false, self.L.ERR_NO_LOADSTRING
     end
 
     local fn, compileErr = loader(codeStr, "AntigravityLiveLua")
     if not fn then
-        return false, "[문법 에러] " .. tostring(compileErr)
+        return false, self.L.ERR_SYNTAX_PREFIX .. self:SafeToString(compileErr, "Syntax Error")
     end
 
     local capturedLines = {}
+    local truncated = false
     local origPrint = print
 
     local function capturedPrint(...)
+        if #capturedLines >= MAX_PRINT_LINES then
+            if not truncated then
+                truncated = true
+                table.insert(capturedLines, string.format(ns.L.ERR_OUTPUT_TRUNC, MAX_PRINT_LINES))
+            end
+            return
+        end
         local parts = {}
         for i = 1, select("#", ...) do
-            parts[i] = tostring(select(i, ...))
+            parts[i] = ns:SafeToString(select(i, ...), "<secret>")
         end
         local line = table.concat(parts, "  ")
         table.insert(capturedLines, line)
-        origPrint("|cff34A853[AGY Lua]|r", ...)
+        pcall(origPrint, "|cff34A853[AGY Lua]|r", line)
     end
 
     local env = setmetatable({
@@ -74,7 +111,7 @@ function ns:RunLuaSnippet(codeStr)
         __newindex = _G,
     })
     if setfenv then
-        setfenv(fn, env)
+        pcall(setfenv, fn, env)
     end
 
     local startMs = debugprofilestop and debugprofilestop() or 0
@@ -83,20 +120,20 @@ function ns:RunLuaSnippet(codeStr)
 
     local ok = table.remove(results, 1)
     if not ok then
-        local runtimeErr = tostring(results[1])
+        local runtimeErr = self:SafeToString(results[1], "Unknown Runtime Error")
         self:RecordLuaError(runtimeErr, "AntigravityLiveLua")
-        return false, "[런타임 에러] " .. runtimeErr
+        return false, self.L.ERR_RUNTIME_PREFIX .. runtimeErr
     end
 
     if #results > 0 then
         local retParts = {}
         for i = 1, #results do
-            retParts[i] = tostring(results[i])
+            retParts[i] = self:SafeToString(results[i], "<secret>")
         end
-        table.insert(capturedLines, "=> 반환값: " .. table.concat(retParts, ", "))
+        table.insert(capturedLines, "=> " .. table.concat(retParts, ", "))
     end
 
-    table.insert(capturedLines, string.format("(실행 완료: %.2f ms)", elapsedMs))
+    table.insert(capturedLines, string.format("(%.2f ms)", elapsedMs))
     return true, table.concat(capturedLines, "\n")
 end
 
@@ -106,24 +143,24 @@ function ns:CreateOrUpdateMacro(macroName, macroBody, pickupToCursor)
         return false
     end
 
-    local cleanName = strtrim(macroName or "AGY_Macro")
+    local cleanName = strtrim(self:SafeToString(macroName, "AGY_Macro"))
     if cleanName == "" then
         cleanName = "AGY_Macro"
     end
     cleanName = cleanName:sub(1, 16)
 
-    local cleanBody = strtrim(macroBody or "")
+    local cleanBody = strtrim(self:SafeToString(macroBody, ""))
     if cleanBody == "" then
+        self:Print(self.L.ERR_MACRO_EMPTY)
         return false
     end
     if #cleanBody > 255 then
         cleanBody = cleanBody:sub(1, 255)
     end
 
-    -- Notify user clearly if the macro contains Lua script commands (/run or /script)
     local lowerBody = cleanBody:lower()
     if lowerBody:find("/run ") or lowerBody:find("/script ") then
-        self:Print("|cffFBBC05[Security Notice]|r Macro contains `/run` or `/script`. Review before clicking on your action bar (`/agy undo` to revert).")
+        self:Print("|cffFBBC05[Security Notice]|r Macro contains `/run` or `/script`. Review before clicking (`/agy undo` to revert).")
     end
 
     local existingIdx = GetMacroIndexByName and GetMacroIndexByName(cleanName) or 0
@@ -132,7 +169,15 @@ function ns:CreateOrUpdateMacro(macroName, macroBody, pickupToCursor)
     if existingIdx and existingIdx > 0 then
         local oldName, oldIcon, oldBody = nil, nil, nil
         if GetMacroInfo then
-            oldName, oldIcon, oldBody = GetMacroInfo(existingIdx)
+            local okInfo, n, ic, bd = pcall(GetMacroInfo, existingIdx)
+            if okInfo then
+                oldName, oldIcon, oldBody = n, ic, bd
+            end
+        end
+        local okEdit, editedIdx = pcall(EditMacro, existingIdx, cleanName, "INV_Misc_QuestionMark", cleanBody)
+        if not okEdit then
+            self:Print("|cffEA4335[Macro Error]|r " .. self:SafeToString(editedIdx, "EditMacro failed"))
+            return false
         end
         self.lastMacroBackup = {
             existed = true,
@@ -140,24 +185,29 @@ function ns:CreateOrUpdateMacro(macroName, macroBody, pickupToCursor)
             icon = oldIcon or "INV_Misc_QuestionMark",
             body = oldBody or "",
         }
-        macroIdx = EditMacro(existingIdx, cleanName, "INV_Misc_QuestionMark", cleanBody)
+        macroIdx = editedIdx or existingIdx
         self:Print(string.format("Macro |cffFBBC05[%s]|r updated! (Type |cff34A853/agy undo|r to revert)", cleanName))
     else
         local numGlobal = GetNumMacros and select(1, GetNumMacros()) or 0
         if numGlobal >= 120 then
-            self:Print("|cffEA4335General macro slots (120) are full.|r")
+            self:Print(self.L.ERR_MACRO_FULL)
+            return false
+        end
+        local okCreate, createdIdx = pcall(CreateMacro, cleanName, "INV_Misc_QuestionMark", cleanBody, nil)
+        if not okCreate then
+            self:Print("|cffEA4335[Macro Error]|r " .. self:SafeToString(createdIdx, "CreateMacro failed"))
             return false
         end
         self.lastMacroBackup = {
             existed = false,
             name = cleanName,
         }
-        macroIdx = CreateMacro(cleanName, "INV_Misc_QuestionMark", cleanBody, nil)
+        macroIdx = createdIdx or 0
         self:Print(string.format("Macro |cffFBBC05[%s]|r created! (Type |cff34A853/agy undo|r to remove)", cleanName))
     end
 
     if pickupToCursor and macroIdx and macroIdx > 0 and PickupMacro then
-        PickupMacro(macroIdx)
+        pcall(PickupMacro, macroIdx)
     end
 
     return true
@@ -170,17 +220,17 @@ function ns:UndoLastMacro()
     end
     local bak = self.lastMacroBackup
     if not bak or not bak.name then
-        self:Print("No recent macro action to undo.")
+        self:Print(self.L.ERR_MACRO_NO_UNDO)
         return false
     end
     local idx = GetMacroIndexByName and GetMacroIndexByName(bak.name) or 0
     if idx and idx > 0 then
         if bak.existed then
-            EditMacro(idx, bak.name, bak.icon or "INV_Misc_QuestionMark", bak.body or "")
-            self:Print(string.format("Restored macro |cffFBBC05[%s]|r to previous content.", bak.name))
+            pcall(EditMacro, idx, bak.name, bak.icon or "INV_Misc_QuestionMark", bak.body or "")
+            self:Print(string.format("Restored macro |cffFBBC05[%s]|r.", bak.name))
         elseif DeleteMacro then
-            DeleteMacro(idx)
-            self:Print(string.format("Deleted newly created macro |cffFBBC05[%s]|r.", bak.name))
+            pcall(DeleteMacro, idx)
+            self:Print(string.format("Deleted macro |cffFBBC05[%s]|r.", bak.name))
         end
     end
     self.lastMacroBackup = nil
@@ -189,14 +239,14 @@ end
 
 function ns:SetMapWaypoint(wp)
     if type(wp) ~= "table" then
-        self:Print("표시할 좌표 정보가 없습니다.")
+        self:Print(self.L.ERR_NO_WAYPOINT)
         return false
     end
 
     local mapID = tonumber(wp.mapID) or 0
     local x = tonumber(wp.x) or 0
     local y = tonumber(wp.y) or 0
-    local label = tostring(wp.label or "Antigravity 안내 위치")
+    local label = self:SafeToString(wp.label, "Waypoint")
 
     if mapID <= 0 and C_Map and C_Map.GetBestMapForUnit then
         local ok, curMap = pcall(C_Map.GetBestMapForUnit, "player")
@@ -206,7 +256,7 @@ function ns:SetMapWaypoint(wp)
     end
 
     if x <= 0 or y <= 0 or x > 100 or y > 100 then
-        self:Print("유효한 좌표 범위를 벗어났습니다.")
+        self:Print(string.format(self.L.ERR_BAD_COORDS, x, y))
         return false
     end
 
@@ -227,19 +277,22 @@ function ns:SetMapWaypoint(wp)
     end
 
     if placed then
-        local link = (C_Map.GetUserWaypointHyperlink and C_Map.GetUserWaypointHyperlink()) or ""
-        self:Print(string.format("📍 지도 핀 설정 완료: |cffFFD100%s|r (%.1f, %.1f) %s", label, x, y, link))
+        local okLink, link = false, ""
+        if C_Map.GetUserWaypointHyperlink then
+            okLink, link = pcall(C_Map.GetUserWaypointHyperlink)
+        end
+        self:Print(string.format(self.L.MSG_WAYPOINT_SET, label, x, y, (okLink and link) or ""))
         return true
     else
-        self:Print(string.format("📍 안내 좌표: |cffFFD100%s|r — (%.1f, %.1f) [현재 지역/인스턴스는 순정 핀 미지원]", label, x, y))
+        self:Print(string.format(self.L.ERR_WAYPOINT_UNSUP, label, x, y))
         return false
     end
 end
 
--- 최근 AI 공략 답변의 핵심 요약을 파티/공격대/길드 채팅으로 깔끔하게 공유 (최대 3줄 제한으로 도배 방지)
 function ns:ShareLatestAnswerToGroup()
     local msg = self.latestAssistantMsg
     if not msg or not msg.content or msg.content == "" then
+        self:Print(self.L.ERR_NO_SHARE_MSG)
         return false
     end
 
@@ -247,16 +300,14 @@ function ns:ShareLatestAnswerToGroup()
         return false
     end
 
-    -- Anti-spam 5s cooldown per Blizzard performance/chat etiquette rules
     local now = GetTime and GetTime() or 0
     if self._lastShareAt and (now - self._lastShareAt) < 5 then
-        self:Print("Please wait a few seconds before sharing to chat again.")
+        self:Print(string.format(self.L.ERR_SHARE_COOLDOWN, 5 - (now - self._lastShareAt)))
         return false
     end
     self._lastShareAt = now
 
-    -- 색상 코드(|c........ 및 |r) 제거
-    local plain = tostring(msg.content):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    local plain = self:SafeToString(msg.content, ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
     plain = plain:gsub("^%[Antigravity%]%s*", "")
 
     local channel = "PARTY"
@@ -267,7 +318,6 @@ function ns:ShareLatestAnswerToGroup()
     elseif IsInGuild and IsInGuild() then
         channel = "GUILD"
     else
-        -- 솔로 플레이 중일 때는 복사 팝업으로 열어줌
         if self.ShowClipboardModal then
             self:ShowClipboardModal("copy", plain)
         end
@@ -278,21 +328,23 @@ function ns:ShareLatestAnswerToGroup()
     for line in (plain .. "\n"):gmatch("(.-)\n") do
         local trimmed = strtrim(line)
         if trimmed ~= "" then
-            pcall(SendChatMessage, "[AGY 요약] " .. trimmed:sub(1, 220), channel)
+            pcall(SendChatMessage, "[AGY] " .. trimmed:sub(1, 220), channel)
             sentLines = sentLines + 1
             if sentLines >= 3 then
                 break
             end
         end
     end
-    self:Print(string.format("%s 채널에 핵심 답변(%d줄)을 공유했습니다.", channel, sentLines))
     return true
 end
 
 function ns:BuildClipboardPacket(promptText, modeOverride)
     local ctx = nil
     if self.db and self.db.settings.attachPlayerContext then
-        ctx = self:CollectContext(self.db.settings.attachMouseover)
+        local okCtx, collected = pcall(self.CollectContext, self, self.db.settings.attachMouseover)
+        if okCtx then
+            ctx = collected
+        end
     end
     local errs = nil
     local reqMode = modeOverride or (self.db and self.db.settings.requestMode) or "auto"
@@ -306,29 +358,29 @@ function ns:BuildClipboardPacket(promptText, modeOverride)
         locale = (self.GetEffectiveLocale and self:GetEffectiveLocale()) or "enUS",
         mode = reqMode,
         timestamp = self:FormatTimestamp(),
-        prompt = promptText or "",
+        prompt = self:SafeToString(promptText, ""),
         context = ctx,
         errors = errs,
     }
-    return "AGY_REQ:" .. SerializeValueCompact(payload, 0)
+    return "AGY_REQ:" .. SerializeValueCompact(payload, 0, {})
 end
 
 function ns:ExtractWaypointFromText(text)
-    if not text or text == "" then return nil end
+    if type(text) ~= "string" or text == "" then return nil end
     local m, x, y, lbl = text:match("```waypoint:([%d]+)%s*,%s*([%d%.]+)%s*,%s*([%d%.]+)%s*,?%s*([^\n`]*)```")
     if m and x and y then
         return {
             mapID = tonumber(m) or 0,
             x = tonumber(x) or 0,
             y = tonumber(y) or 0,
-            label = strtrim(lbl or "추천 위치"),
+            label = strtrim(lbl or "Waypoint"),
         }
     end
     return nil
 end
 
 function ns:ExtractMacroFromText(text)
-    if not text or text == "" then return "", "" end
+    if type(text) ~= "string" or text == "" then return "", "" end
     local mName, mBody = text:match("```macro:([^\n`]+)\r?\n(.-)```")
     if not mBody then
         mBody = text:match("```macro%s*\r?\n(.-)```")
@@ -341,11 +393,11 @@ function ns:ExtractMacroFromText(text)
 end
 
 function ns:ExtractLuaFromClipboard(pastedText)
-    if not pastedText or strtrim(pastedText) == "" then
+    if type(pastedText) ~= "string" or strtrim(pastedText) == "" then
         return ""
     end
 
-    local fenced = pastedText:match("```lua%s*\n(.-)```") or pastedText:match("```%s*\n(.-)```")
+    local fenced = pastedText:match("```lua%s*\r?\n(.-)```") or pastedText:match("```%s*\r?\n(.-)```")
     if fenced and strtrim(fenced) ~= "" then
         return strtrim(fenced)
     end
@@ -353,9 +405,9 @@ function ns:ExtractLuaFromClipboard(pastedText)
     return strtrim(pastedText)
 end
 
--- 무-리로드 클립보드 답변(Q&A 답변 + Lua 스니펫 + 매크로 + 지도 핀)을 인게임 터미널에 완벽 반영
 function ns:IngestClipboardReply(pastedText)
-    if not pastedText or strtrim(pastedText) == "" then
+    if type(pastedText) ~= "string" or strtrim(pastedText) == "" then
+        self:Print(self.L.ERR_CLIP_EMPTY)
         return false
     end
 
@@ -368,23 +420,22 @@ function ns:IngestClipboardReply(pastedText)
     local macroName, macroBody = self:ExtractMacroFromText(raw)
     local wp = self:ExtractWaypointFromText(raw)
 
-    -- 화면 대화창 본문에서는 코드/매크로/좌표 펜스 블록을 깔끔히 분리 제거
     local displayContent = raw
         :gsub("```lua%s*\r?\n.-```", "")
         :gsub("```macro[^\n`]*\r?\n.-```", "")
         :gsub("```waypoint:.-```", "")
     displayContent = strtrim(displayContent)
     if displayContent == "" and luaCode ~= "" then
-        displayContent = "클립보드 Lua 코드가 도착했습니다! 아래 [▶ 응답 코드 실행]을 눌러 실행하세요."
+        displayContent = "Lua snippet ready -> [" .. self.L.BTN_RUN_REPLY .. "]"
     end
 
-    if self.db and self.db.history then
+    if self.db and type(self.db.history) == "table" then
         local msgObj = {
             id = "clip-res-" .. tostring(time and time() or 0) .. "-" .. tostring(#self.db.history + 1),
             requestId = "clipboard",
             role = "assistant",
             timestamp = self:FormatTimestamp(),
-            summary = "클립보드 즉시 응답",
+            summary = "Clipboard Reply",
             content = "|cff4285F4[Antigravity]|r " .. displayContent,
             code = strtrim(luaCode),
             macroName = macroName,
@@ -401,7 +452,7 @@ function ns:IngestClipboardReply(pastedText)
     end
 
     if self.RefreshUI then
-        self:RefreshUI()
+        pcall(self.RefreshUI, self)
     end
     return true
 end
