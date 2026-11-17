@@ -50,7 +50,24 @@ chmod +x ./scripts/install.sh
 .\scripts\install.ps1 "C:\Program Files (x86)\World of Warcraft\_forever_"
 ```
 
-### 2. ローカルブリッジデーモンの起動
+### 2. Antigravity 認証設定（初回のみ・4つの方式に対応）
+
+対話型の認証セットアップウィザードで簡単に設定・確認できます：
+
+```bash
+# 対話型セットアップウィザード（agy ログイン または .env への APIキー安全保存）
+python3 bridge/daemon.py --setup-auth
+
+# 現在の認証ステータス確認
+python3 bridge/daemon.py --check-auth
+```
+
+- **方式1（`agy` CLI Google ログイン）**: ターミナルで一度 `agy` を起動し、ブラウザでGoogleログインするだけで完了（APIキー不要）。
+- **方式2（Google AI Studio APIキー）**: https://aistudio.google.com/app/api-keys で取得し、`--setup-auth` で `.env`（権限 `0600`）に保存。
+- **方式3（Google Cloud / Vertex AI ADC）**: `gcloud auth application-default login` + `--vertex --project <ID>`。
+- **方式4（ローカルモデル：認証不要）**: LiteRT Gemma 4（`--litert-model`）または Ollama / LM Studio（`--local-openai-url`）。
+
+### 3. ローカルブリッジデーモンの起動
 
 ```bash
 # A) agy CLI 自動検出モード（APIキー設定不要）

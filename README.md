@@ -74,6 +74,29 @@ chmod +x ./scripts/install.sh
 
 ---
 
+## Authentication Setup (4 Official Options)
+
+Run the built-in interactive authentication wizard anytime, or verify your current status:
+
+```bash
+# Guided interactive setup (launches `agy` login or saves GEMINI_API_KEY to a 0600 `.env` file)
+python3 bridge/daemon.py --setup-auth
+
+# Verify current authentication status
+python3 bridge/daemon.py --check-auth
+```
+
+1. **Option 1 — Antigravity CLI (`agy`) Google Sign-In (No API Key Needed)**:
+   - Run `agy` once in your terminal and complete the browser Google OAuth sign-in. The bridge automatically reuses your authenticated `agy` CLI session.
+2. **Option 2 — Google AI Studio API Key (`.env` or Environment Variable)**:
+   - Create an API key at https://aistudio.google.com/app/api-keys and save it via `python3 bridge/daemon.py --setup-auth` (writes to git-ignored `.env` with `0600` permissions) or `export GEMINI_API_KEY="your-key"`.
+3. **Option 3 — Google Cloud / Gemini Enterprise (`Vertex AI` ADC)**:
+   - Run `gcloud auth application-default login`, then pass `--vertex --project <GCP_PROJECT_ID>`.
+4. **Option 4 — 100% Local On-Device Models (Zero Auth / Zero Cloud Cost)**:
+   - Use LiteRT Gemma 4 (`--litert-model`) or local Ollama / LM Studio (`--local-openai-url`) with no account or API key required.
+
+---
+
 ## Running the Companion Bridge
 
 Because WoW's Lua sandbox blocks direct network or subprocess calls, run the lightweight local bridge alongside the game:

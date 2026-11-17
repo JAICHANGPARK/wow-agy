@@ -391,6 +391,9 @@ class AntigravityBridgeRunner:
         litert_model_path: str | None = None,
         local_openai_url: str | None = None,
         local_openai_model: str | None = None,
+        use_vertex: bool = False,
+        vertex_project: str | None = None,
+        vertex_location: str | None = None,
     ) -> None:
         self.addons_dir = addons_dir.resolve()
         self.agents_md_path = agents_md_path.resolve()
@@ -400,11 +403,14 @@ class AntigravityBridgeRunner:
         )
         self.local_openai_url = local_openai_url
         self.local_openai_model = local_openai_model
+        self.use_vertex = use_vertex or (os.environ.get("AGY_USE_VERTEX", "").lower() == "true")
+        self.vertex_project = vertex_project or os.environ.get("GOOGLE_CLOUD_PROJECT")
+        self.vertex_location = vertex_location or os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
         self.agy_bin = agy_bin or shutil.which("agy") or os.path.expanduser("~/.local/bin/agy")
         self.has_first_turn = False
 
         if backend == "auto":
-            if self.litert_model_path or self.local_openai_url:
+            if self.litert_model_path or self.local_openai_url or self.use_vertex:
                 self.backend = "sdk"
             elif self._is_sdk_ready():
                 self.backend = "sdk"
@@ -568,13 +574,38 @@ class AntigravityBridgeRunner:
                 system_instructions=system_rules,
                 tools=custom_tools,
             ).lightweight()
-        # 3) Hosted Gemini via Google Antigravity SDK (`LocalAgentConfig`)
+        # 3) Gemini Enterprise / Vertex AI (`vertex=True`: Express API Key or Standard ADC)
+        elif self.use_vertex:
+            api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+            if api_key:
+                config = LocalAgentConfig(
+                    vertex=True,
+                    api_key=api_key,
+                    workspaces=[str(addons_root)],
+                    system_instructions=system_rules,
+                    tools=custom_tools,
+                )
+            elif self.vertex_project:
+                config = LocalAgentConfig(
+                    vertex=True,
+                    project=self.vertex_project,
+                    location=self.vertex_location,
+                    workspaces=[str(addons_root)],
+                    system_instructions=system_rules,
+                    tools=custom_tools,
+                )
+            else:
+                return (
+                    "|cffEA4335[Vertex Auth Required]|r Run `gcloud auth application-default login` "
+                    "and set `GOOGLE_CLOUD_PROJECT`, or run `python3 bridge/daemon.py --setup-auth`."
+                )
+        # 4) Hosted Gemini via Google Antigravity SDK (`LocalAgentConfig`)
         else:
             if not os.environ.get("GEMINI_API_KEY"):
                 return (
-                    "|cffEA4335[API Key Required]|r `GEMINI_API_KEY` is not set.\n"
-                    "Create a key at Google AI Studio (https://aistudio.google.com/app/api-keys), "
-                    "pass `--local-openai-url` / `--litert-model`, or use `--backend cli`."
+                    "|cffEA4335[Auth Required]|r `GEMINI_API_KEY` is not set.\n"
+                    "Run `python3 bridge/daemon.py --setup-auth`, create a key at "
+                    "https://aistudio.google.com/app/api-keys, or use `--backend cli`."
                 )
             config = LocalAgentConfig(
                 workspaces=[str(addons_root)],

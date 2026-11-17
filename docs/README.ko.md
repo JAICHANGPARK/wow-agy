@@ -52,7 +52,28 @@ chmod +x ./scripts/install.sh
 .\scripts\install.ps1 "C:\Program Files (x86)\World of Warcraft\_forever_"
 ```
 
-### 2단계: 로컬 브릿지 데몬 실행
+### 2단계: Antigravity 인증 설정 (최초 1회 — 4가지 방식 지원)
+
+대화형 인증 설정 마법사를 실행하면 누구나 쉽게 인증을 마칠 수 있습니다:
+
+```bash
+# 대화형 인증 마법사 실행 (agy 로그인 또는 .env 파일에 API 키 안전 저장)
+python3 bridge/daemon.py --setup-auth
+
+# 현재 인증 상태 정상 여부 확인
+python3 bridge/daemon.py --check-auth
+```
+
+1. **방법 1 — `agy` CLI 구글 계정 로그인 (API 키 불필요, 가장 간편)**:
+   - 터미널에서 `agy` 를 최초 1회 실행해 브라우저에서 Google 계정으로 로그인하면 끝납니다.
+2. **방법 2 — Google AI Studio API 키 (`.env` 자동 로드 지원)**:
+   - https://aistudio.google.com/app/api-keys 에서 키를 발급받아 `--setup-auth` 에서 붙여넣으면 `.env` 파일(소유자 전용 `0600` 권한, Git 업로드 제외)에 안전하게 저장되어 매번 `export` 할 필요가 없습니다.
+3. **방법 3 — Google Cloud / Gemini Enterprise (`Vertex AI` ADC)**:
+   - `gcloud auth application-default login` 실행 후 `--vertex --project <GCP_프로젝트_ID>` 로 구동합니다.
+4. **방법 4 — 무인증 로컬 모델 모드 (계정·API 키 불필요)**:
+   - 온디바이스 LiteRT Gemma 4 (`--litert-model`) 또는 로컬 Ollama / LM Studio (`--local-openai-url`) 사용 시 별도 인증 없이 무료로 작동합니다.
+
+### 3단계: 로컬 브릿지 데몬 실행
 
 ```bash
 # 1) 기본 실행 (설치된 agy CLI 자동 감지 — API 키 설정 불필요)

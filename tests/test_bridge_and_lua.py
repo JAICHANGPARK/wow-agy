@@ -19,6 +19,7 @@ from bridge.agy_runner import (
     resolve_locale_info,
     scaffold_forever_addon_files,
 )
+from bridge.auth import diagnose_auth, load_dotenv_file, mask_secret, write_env_key_safely
 from bridge.daemon import CompanionDaemon
 from bridge.lua_serde import (
     dump_lua_value,
@@ -266,6 +267,25 @@ class TestAddonAndBridge(unittest.TestCase):
                     continue
                 resolved = (readme.parent / rel_target).resolve()
                 self.assertTrue(resolved.exists(), f"Broken link {rel_target!r} in {readme.name}")
+
+    def test_auth_dotenv_and_diagnostics(self) -> None:
+        import os
+
+        self.assertEqual(mask_secret("AIzaSyABCDEF123456"), "AIza...3456")
+        with tempfile.TemporaryDirectory() as tmp:
+            env_path = Path(tmp) / ".env"
+            write_env_key_safely(env_path, {"TEST_AGY_DUMMY_KEY": "secret_val_12345"})
+            mode_bits = env_path.stat().st_mode & 0o777
+            self.assertEqual(mode_bits, 0o600)
+
+            os.environ.pop("TEST_AGY_DUMMY_KEY", None)
+            load_dotenv_file(env_path)
+            self.assertEqual(os.environ.get("TEST_AGY_DUMMY_KEY"), "secret_val_12345")
+            os.environ.pop("TEST_AGY_DUMMY_KEY", None)
+
+        st_local = diagnose_auth(backend="sdk", agy_bin=None, local_openai_url="http://localhost:11434/v1")
+        self.assertTrue(st_local.ok)
+        self.assertEqual(st_local.method, "sdk-local-openai")
 
     def test_mcp_server_jsonrpc_tools(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

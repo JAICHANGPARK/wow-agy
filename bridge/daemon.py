@@ -27,6 +27,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from bridge.agy_runner import AntigravityBridgeRunner
+from bridge.auth import diagnose_auth, load_dotenv_file, run_interactive_auth_setup
 from bridge.lua_serde import load_saved_variables_file, write_inbox_lua
 
 
@@ -326,16 +327,27 @@ class CompanionDaemon:
         return True
 
     def serve_forever(self) -> None:
+        auth_info = diagnose_auth(
+            backend=self.runner.backend,
+            agy_bin=self.runner.agy_bin,
+            litert_model_path=self.runner.litert_model_path,
+            local_openai_url=self.runner.local_openai_url,
+            use_vertex=self.runner.use_vertex,
+            vertex_project=self.runner.vertex_project,
+        )
         print("=" * 68)
         print(" Antigravity WoW Forever (Interface: 16001) Companion Bridge")
         print("=" * 68)
         print(f" • Backend        : {self.runner.backend} ({self.runner.agy_bin})")
+        print(f" • Auth Status    : {'✅ ' + auth_info.summary if auth_info.ok else '⚠️ ' + auth_info.summary}")
+        if not auth_info.ok and auth_info.hint:
+            print(f"   -> Hint        : {auth_info.hint}")
         print(f" • AddOns 폴더    : {self.addons_dir}")
         print(f" • Inbox 경로     : {self.inbox_path}")
         print(f" • WoW 경로       : {self.wow_flavor_dir or '(수동 지정 안 됨 — 로컬 워크스페이스 모드)'}")
         print(f" • 클립보드 브릿지: {'활성화 (무-리로드 즉시 실행 지원)' if self.enable_clipboard else '비활성화'}")
         print("-" * 68)
-        print(" 대기 중... (종료하려면 Ctrl+C)")
+        print(" 대기 중... (종료하려면 Ctrl+C | 인증 재설정: python3 bridge/daemon.py --setup-auth)")
 
         try:
             while True:
@@ -393,6 +405,33 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="--local-openai-url 사용 시 로컬 모델 이름 (예: gemma4:26b)",
     )
     p.add_argument(
+        "--vertex",
+        action="store_true",
+        help="Gemini Enterprise (Vertex AI) 인증 모드 활성화",
+    )
+    p.add_argument(
+        "--project",
+        type=str,
+        default=None,
+        help="Vertex AI Standard Mode 사용 시 Google Cloud 프로젝트 ID",
+    )
+    p.add_argument(
+        "--location",
+        type=str,
+        default=None,
+        help="Vertex AI 리전 (기본값: us-central1)",
+    )
+    p.add_argument(
+        "--setup-auth",
+        action="store_true",
+        help="대화형 Antigravity 인증 설정 마법사 실행 (agy 로그인 / .env API 키 저장)",
+    )
+    p.add_argument(
+        "--check-auth",
+        action="store_true",
+        help="현재 Antigravity 인증 상태만 진단하고 종료",
+    )
+    p.add_argument(
         "--no-clipboard",
         action="store_true",
         help="무-리로드 클립보드 브릿지 감시 비활성화",
@@ -411,7 +450,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    load_dotenv_file(REPO_ROOT / ".env")
     args = build_arg_parser().parse_args()
+
+    if args.setup_auth:
+        return run_interactive_auth_setup(REPO_ROOT)
+
     wow_dir = args.wow_dir.expanduser().resolve() if args.wow_dir else auto_detect_wow_flavor_dir()
 
     if args.addons_dir:
@@ -432,7 +476,24 @@ def main() -> int:
         litert_model_path=args.litert_model,
         local_openai_url=args.local_openai_url,
         local_openai_model=args.local_model,
+        use_vertex=args.vertex,
+        vertex_project=args.project,
+        vertex_location=args.location,
     )
+
+    if args.check_auth:
+        st = diagnose_auth(
+            backend=runner.backend,
+            agy_bin=runner.agy_bin,
+            litert_model_path=runner.litert_model_path,
+            local_openai_url=runner.local_openai_url,
+            use_vertex=runner.use_vertex,
+            vertex_project=runner.vertex_project,
+        )
+        print(f"[{'OK' if st.ok else 'MISSING'}] ({st.method}) {st.summary}")
+        if st.hint:
+            print(f"Hint: {st.hint}")
+        return 0 if st.ok else 1
 
     daemon = CompanionDaemon(
         addons_dir=addons_dir,

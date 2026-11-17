@@ -49,7 +49,24 @@ chmod +x ./scripts/install.sh
 .\scripts\install.ps1 "C:\Program Files (x86)\World of Warcraft\_forever_"
 ```
 
-### 第二步：启动本地伴侣桥接守护进程
+### 第二步：配置 Antigravity 身份认证（首次运行 — 支持 4 种方式）
+
+可通过内置交互式向导一键完成配置或检查认证状态：
+
+```bash
+# 运行交互式认证配置向导（引导 agy 登录或安全保存 GEMINI_API_KEY 至 .env）
+python3 bridge/daemon.py --setup-auth
+
+# 检查当前认证状态
+python3 bridge/daemon.py --check-auth
+```
+
+- **方式 1（`agy` CLI 谷歌账号登录，免 API Key）**：在终端运行一次 `agy`，通过浏览器登录 Google 账号即可自动复用会话。
+- **方式 2（Google AI Studio API Key）**：在 https://aistudio.google.com/app/api-keys 获取密钥，通过 `--setup-auth` 自动写入本地 `.env` 文件（`0600` 权限且已加入 `.gitignore`）。
+- **方式 3（Google Cloud / Vertex AI ADC）**：运行 `gcloud auth application-default login` 并搭配 `--vertex --project <项目ID>`。
+- **方式 4（纯本地模型，免认证/零费用）**：使用 LiteRT Gemma 4 (`--litert-model`) 或本地 Ollama / LM Studio (`--local-openai-url`)。
+
+### 第三步：启动本地伴侣桥接守护进程
 
 ```bash
 # 方式 A：自动使用已安装的 agy CLI（免配置 API Key）
