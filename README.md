@@ -3,6 +3,7 @@
 **월드 오브 워크래프트: 포에버(World of Warcraft: Forever)** 게임 안에서 알트탭 없이 **Google Antigravity (`agy` CLI / Antigravity SDK)** 에게 **와우 공략·퀘스트·아이템 질문(Q&A)** 도 하고, **나만의 Lua 애드온 바이브 코딩·실시간 실행·에러 디버깅**까지 할 수 있는 올인원 애드온 & 로컬 브릿지 풀세트입니다.
 
 - **포에버 최신 규격 완벽 대응**: `## Interface: 16001` 매니페스트 및 최신 리테일/Midnight 기반 `C_*` 네임스페이스(`C_Spell`, `C_Item`, `C_UnitAuras`, `C_Map`, `Settings`) 100% 준수
+- **글로벌 12개 언어 다국어 지원 (기본 영어 `enUS`)**: 와우가 공식 서비스되는 모든 클라이언트 로케일(`enUS`/`enGB`, `koKR`, `zhCN`, `zhTW`, `deDE`, `frFR`, `esES`, `esMX`, `ptBR`/`ptPT`, `ruRU`, `itIT`) 자동 감지 **+** 일본어(`jaJP`) 수동 전환 지원
 - **블리자드 공식 UI 애드온 개발 정책 준수**: 순수 평문 Lua/XML 구성, 메모리 변조·봇·전투 자동화 없음, `InCombatLockdown()` 보호 규칙 적용
 
 ---
@@ -118,6 +119,7 @@ agy mcp add wow-forever -- env WOW_FOREVER_DIR="/Applications/World of Warcraft/
 | :--- | :--- |
 | `/agy` 또는 `/antigravity` | Antigravity AI 가이드 & 코딩 스튜디오 메인 창 열기/닫기 |
 | `/와우질문 <질문>` 또는 `/wowask <질문>` | 와우 공략·퀘스트·아이템·빌드 빠른 질문 등록 및 창 열기 |
+| `/agy lang <코드\|auto>` | UI 및 AI 답변 언어 즉시 전환 (예: `/agy lang enUS`, `/agy lang koKR`, `/agy lang jaJP`, `/agy lang zhCN`) |
 | `/agy lua` | `2. Live Lua 에디터` 탭 바로 열기 |
 | `/agy errors` | `3. 에러 디버거` 탭 바로 열기 |
 | `/agy run <Lua코드>` | 채팅창에서 한 줄 Lua 코드 즉시 실행 (예: `/agy run print(GetRealZoneText())`) |
@@ -135,6 +137,31 @@ agy mcp add wow-forever -- env WOW_FOREVER_DIR="/Applications/World of Warcraft/
 
 ---
 
+## 다국어 지원 (Multilingual Support — 12 Languages)
+
+기본 폴백(Default Fallback) 언어는 **영어(`enUS`)** 이며, 와우 클라이언트의 `GetLocale()` 값을 자동 감지하여 **블리자드가 공식 지원하는 전 지역 언어 + 일본어(`jaJP`)** 까지 UI와 AI 응답 언어가 자동 동기화됩니다.
+
+창 우측 상단의 **`[🌐 Auto (...)]`** 버튼을 클릭하거나 `/agy lang <코드>` 명령어를 입력하면 `/reload` 없이 실시간으로 언어가 바뀝니다:
+
+| 코드 | 언어 / 권역 | 클라이언트 자동 감지 (`GetLocale()`) | 지역별 AI 검색 레퍼런스 연동 |
+| :--- | :--- | :---: | :--- |
+| **`enUS` / `enGB`** | **English (Default Fallback)** | ✅ 공식 지원 | Wowhead, Warcraft Wiki |
+| **`koKR`** | **한국어 (Korean)** | ✅ 공식 지원 | 와우 인벤(Inven), Wowhead |
+| **`jaJP`** | **日本語 (Japanese)** | 수동 전환 (`/agy lang jaJP`) \* | Wowhead, 일본어 공략 위키 |
+| **`zhCN`** | **简体中文 (중국어 간체)** | ✅ 공식 지원 | NGA, 178, Wowhead |
+| **`zhTW`** | **繁體中文 (중국어 번체)** | ✅ 공식 지원 | 巴哈姆特(Bahamut), Wowhead |
+| **`deDE`** | **Deutsch (독일어)** | ✅ 공식 지원 | de.wowhead.com, Buffed |
+| **`frFR`** | **Français (프랑스어)** | ✅ 공식 지원 | fr.wowhead.com, JudgeHype |
+| **`esES`** | **Español — España (유럽 스페인어)** | ✅ 공식 지원 | es.wowhead.com |
+| **`esMX`** | **Español — América Latina (중남미 스페인어)** | ✅ 공식 지원 | es.wowhead.com |
+| **`ptBR` / `ptPT`** | **Português (포르투갈어)** | ✅ 공식 지원 | pt.wowhead.com |
+| **`ruRU`** | **Русский (러시아어)** | ✅ 공식 지원 | ru.wowhead.com, Noob-Club |
+| **`itIT`** | **Italiano (이탈리아어)** | ✅ 공식 지원 | it.wowhead.com |
+
+> **\* 참고 (일본어 `jaJP` 관련)**: 월드 오브 워크래프트는 블리자드 공식 `jaJP` 클라이언트가 존재하지 않아 영문(`enUS`) 클라이언트에서는 기본 폰트에 일본어 글리프가 없습니다. 영문 클라이언트에서 `jaJP` 모드를 사용할 때는 일본어 폰트 애드온(*NihongoPlus* 등)을 함께 활성화하는 것을 권장합니다.
+
+---
+
 ## 프로젝트 구조
 
 ```text
@@ -142,7 +169,8 @@ wow-addon-agy/
 ├── AGENTS.md                        # WoW Forever (16001) 공식 API & Q&A 가이드 지침서
 ├── AddOn/
 │   └── AntigravityWoW/              # 100% 순수 Lua/XML 인게임 애드온
-│       ├── AntigravityWoW.toc       # ## Interface: 16001 매니페스트
+│       ├── AntigravityWoW.toc       # ## Interface: 16001 + 다국어 Title/Notes 매니페스트
+│       ├── Locales.lua              # 12개 언어 다국어 엔진 (기본 영어 enUS 폴백 + 실시간 전환)
 │       ├── Bindings.xml             # ESC -> 단축키 설정 공식 바인딩 정의
 │       ├── Core.lua                 # 초기화, 슬래시 명령어(/agy, /와우질문), Outbox/Inbox 동기화
 │       ├── Inbox.lua                # 로컬 브릿지 -> 인게임 응답 수신 데이터 파일

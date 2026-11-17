@@ -243,19 +243,20 @@ class CompanionDaemon:
                 req_id = str(entry.get("id", ""))
                 status = str(entry.get("status", ""))
                 req_mode = str(entry.get("mode", "auto"))
+                req_locale = str(entry.get("locale", "enUS"))
                 prompt = str(entry.get("prompt", "")).strip()
                 if not req_id or not prompt:
                     continue
                 if status != "pending" or req_id in self.processed_ids:
                     continue
 
-                print(f"\n[AGY Bridge] 새 인게임 요청 감지 ({req_id}, mode={req_mode}): {prompt[:80]}")
+                print(f"\n[AGY Bridge] New in-game request ({req_id}, mode={req_mode}, locale={req_locale}): {prompt[:80]}")
                 self.processed_ids.add(req_id)
 
                 ctx = entry.get("context") if isinstance(entry.get("context"), dict) else None
                 errs = entry.get("errors") if isinstance(entry.get("errors"), list) else None
 
-                result = self.runner.run_turn(prompt=prompt, context=ctx, errors=errs, mode=req_mode)
+                result = self.runner.run_turn(prompt=prompt, context=ctx, errors=errs, mode=req_mode, locale=req_locale)
                 self._record_and_flush_reply(req_id, prompt, result)
                 handled += 1
 
@@ -291,13 +292,14 @@ class CompanionDaemon:
             return False
 
         req_mode = str(payload.get("mode", "auto"))
+        req_locale = str(payload.get("locale", "enUS"))
         req_id = f"clip-{int(time.time())}"
-        print(f"\n[AGY Clipboard] 무-리로드 클립보드 요청 감지 (mode={req_mode}): {prompt[:80]}")
+        print(f"\n[AGY Clipboard] Zero-Reload request (mode={req_mode}, locale={req_locale}): {prompt[:80]}")
 
         ctx = payload.get("context") if isinstance(payload.get("context"), dict) else None
         errs = payload.get("errors") if isinstance(payload.get("errors"), list) else None
 
-        result = self.runner.run_turn(prompt=prompt, context=ctx, errors=errs, mode=req_mode)
+        result = self.runner.run_turn(prompt=prompt, context=ctx, errors=errs, mode=req_mode, locale=req_locale)
         self._record_and_flush_reply(req_id, prompt, result)
 
         # Build AGY_RES packet carrying WoW-formatted Q&A answer + optional ```lua``` + ```macro``` + ```waypoint```

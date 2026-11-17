@@ -1,11 +1,32 @@
 ## Interface: 16001
 ## Title: |cff4285F4Antigravity|r |cff34A853AI Guide & Studio|r
-## Notes: WoW Forever 전용 인게임 와우 질문(Q&A) 백과사전 + Antigravity 코딩 스튜디오 (/agy, /와우질문)
+## Notes: In-game WoW Q&A Strategy Assistant & Antigravity Lua Code Studio for WoW Forever (/agy, /wowask)
+## Title-koKR: |cff4285F4Antigravity|r |cff34A853AI 가이드 & 스튜디오|r
+## Notes-koKR: WoW Forever 전용 인게임 와우 질문(Q&A) 백과사전 + Antigravity 코딩 스튜디오 (/agy, /와우질문)
+## Title-zhCN: |cff4285F4Antigravity|r |cff34A853AI 攻略与编程工作室|r
+## Notes-zhCN: 魔兽世界：永恒 游戏内 AI 攻略百科问答与 Lua 插件编程调试工作室 (/agy, /wowask)
+## Title-zhTW: |cff4285F4Antigravity|r |cff34A853AI 攻略與編程工作室|r
+## Notes-zhTW: 魔獸世界：永恆 遊戲內 AI 攻略百科問答與 Lua 插件編程除錯工作室 (/agy, /wowask)
+## Title-deDE: |cff4285F4Antigravity|r |cff34A853AI-Guide & Code-Studio|r
+## Notes-deDE: In-Game WoW-Q&A-Assistent & Antigravity Lua-Code-Studio für WoW Forever (/agy, /wowask)
+## Title-frFR: |cff4285F4Antigravity|r |cff34A853Guide IA & Studio Lua|r
+## Notes-frFR: Assistant Q&R WoW en jeu & Studio de code Lua Antigravity pour WoW Forever (/agy, /wowask)
+## Title-esES: |cff4285F4Antigravity|r |cff34A853Guía IA y Estudio Lua|r
+## Notes-esES: Asistente de preguntas de WoW y estudio de código Lua Antigravity en el juego (/agy, /wowask)
+## Title-esMX: |cff4285F4Antigravity|r |cff34A853Guía IA y Estudio Lua|r
+## Notes-esMX: Asistente de preguntas de WoW y estudio de código Lua Antigravity en el juego (/agy, /wowask)
+## Title-ptBR: |cff4285F4Antigravity|r |cff34A853Guia IA & Estúdio Lua|r
+## Notes-ptBR: Assistente de perguntas de WoW e estúdio de código Lua Antigravity no jogo (/agy, /wowask)
+## Title-ruRU: |cff4285F4Antigravity|r |cff34A853ИИ-гид и Lua-студия|r
+## Notes-ruRU: Внутриигровой ИИ-помощник по WoW Forever и студия разработки Lua-аддонов (/agy, /wowask)
+## Title-itIT: |cff4285F4Antigravity|r |cff34A853Guida IA & Studio Lua|r
+## Notes-itIT: Assistente Q&A di WoW in gioco e studio di programmazione Lua Antigravity (/agy, /wowask)
 ## Author: Antigravity Studio
-## Version: 1.2.0
+## Version: 1.3.0
 ## SavedVariables: AntigravityWoWDB
 ## IconTexture: Interface\Icons\INV_Misc_EngGizmos_20
 
+Locales.lua
 Core.lua
 Inbox.lua
 Context.lua

@@ -10,11 +10,13 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from bridge.agy_runner import (
+    LOCALE_CONFIG,
     AgentTurnResult,
     extract_artifacts_from_reply,
     format_enriched_prompt,
     format_markdown_for_wow_chat,
     infer_request_mode,
+    resolve_locale_info,
     scaffold_forever_addon_files,
 )
 from bridge.daemon import CompanionDaemon
@@ -34,7 +36,9 @@ class FakeRunner:
     backend = "fake"
     agy_bin = "/usr/bin/true"
 
-    def run_turn(self, prompt: str, context=None, errors=None, mode: str = "auto") -> AgentTurnResult:
+    def run_turn(
+        self, prompt: str, context=None, errors=None, mode: str = "auto", locale: str | None = None
+    ) -> AgentTurnResult:
         return AgentTurnResult(
             text=f"요청 처리 완료: {prompt}",
             lua_snippet="print('Hello WoW Forever 16001')",
@@ -60,7 +64,8 @@ class TestAddonAndBridge(unittest.TestCase):
             for line in toc_lines
             if line.strip() and not line.strip().startswith("#")
         ]
-        self.assertGreaterEqual(len(lua_files), 8)
+        self.assertGreaterEqual(len(lua_files), 9)
+        self.assertEqual(lua_files[0], "Locales.lua")
         self.assertIn("Settings.lua", lua_files)
 
         # Verify Bindings.xml is valid XML and references defined actions
@@ -196,9 +201,22 @@ class TestAddonAndBridge(unittest.TestCase):
         self.assertIn("|cffFFD100죽음의 고리|r", res.text)
         self.assertIn("• ", res.text)
 
-        # Verify QA mode vs Coding mode inference
+        # Verify QA mode vs Coding mode inference across EN, KO, JA, ZH, RU
+        self.assertEqual(infer_request_mode("What is the drop rate of Deathcharger's Reins?"), "qa")
         self.assertEqual(infer_request_mode("스트라솔름 남작 군마 드랍률이 몇 퍼센트야?"), "qa")
-        self.assertEqual(infer_request_mode("내 체력바 프레임 옮기는 루아 애드온 만들어줘"), "code")
+        self.assertEqual(infer_request_mode("Build a Lua addon frame for my mana bar"), "code")
+        self.assertEqual(infer_request_mode("新しいLuaアドオンを作ってください"), "code")
+        self.assertEqual(infer_request_mode("帮我写一个魔兽插件宏"), "code")
+
+        # Verify all official WoW locales + Japanese resolve cleanly with enUS default fallback
+        for code in ("enUS", "enGB", "koKR", "jaJP", "zhCN", "zhTW", "deDE", "frFR", "esES", "esMX", "ptBR", "ruRU", "itIT"):
+            self.assertIn(code, LOCALE_CONFIG)
+        fallback_code, fallback_lang, _ = resolve_locale_info("unknownLocale")
+        self.assertEqual(fallback_code, "enUS")
+        self.assertEqual(fallback_lang, "English")
+
+        ja_prompt = format_enriched_prompt("このクエストはどこに行けばいい？", mode="qa", locale="jaJP")
+        self.assertIn("Japanese (日本語)", ja_prompt)
 
         qa_prompt = format_enriched_prompt(
             "이 몬스터 뭐 드랍해?",

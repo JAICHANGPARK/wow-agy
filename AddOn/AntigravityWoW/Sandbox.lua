@@ -255,6 +255,7 @@ function ns:BuildClipboardPacket(promptText, modeOverride)
     local payload = {
         protocol = "AGY_WOW_FOREVER_V1",
         toc = 16001,
+        locale = (self.GetEffectiveLocale and self:GetEffectiveLocale()) or "enUS",
         mode = reqMode,
         timestamp = self:FormatTimestamp(),
         prompt = promptText or "",

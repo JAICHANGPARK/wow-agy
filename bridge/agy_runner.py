@@ -1,12 +1,12 @@
-"""Dual-Backend Google Antigravity Runner for WoW Forever (Interface: 16001).
+"""Dual-Backend Multilingual Google Antigravity Runner for WoW Forever (Interface: 16001).
 
 Handles both:
 1. In-game WoW Forever Q&A / Strategy / Quest / Item Encyclopedia queries (`mode="qa"`)
 2. In-game Lua Addon / Macro Vibe-Coding & Error Debugging (`mode="code"` / `"auto"`)
 
-Supports:
-- `cli` backend: Uses the installed `agy` CLI (`agy -p ... --mode accept-edits`)
-- `sdk` backend: Uses `google.antigravity` Python SDK (`Agent`, `LocalAgentConfig`)
+Multilingual Support (Default Fallback: English `enUS`):
+- Official Blizzard WoW Locales: `enUS`/`enGB`, `koKR`, `zhCN`, `zhTW`, `deDE`, `frFR`, `esES`, `esMX`, `ptBR`, `ruRU`, `itIT`
+- Additional Community Locale: `jaJP` (Japanese)
 """
 
 from __future__ import annotations
@@ -39,11 +39,45 @@ WAYPOINT_BLOCK_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Language metadata & regional WoW search grounding hints (Default: English enUS)
+LOCALE_CONFIG: dict[str, tuple[str, str]] = {
+    "enUS": ("English", "Wowhead, Warcraft Wiki (warcraft.wiki.gg)"),
+    "enGB": ("English", "Wowhead, Warcraft Wiki (warcraft.wiki.gg)"),
+    "koKR": ("Korean (한국어)", "와우 인벤 (WoW Inven), Wowhead, Warcraft Wiki"),
+    "jaJP": ("Japanese (日本語)", "Wowhead, Warcraft Wiki, WoW日本語攻略Wiki"),
+    "zhCN": ("Simplified Chinese (简体中文)", "NGA艾泽拉斯国家地理, 178魔兽世界, Wowhead"),
+    "zhTW": ("Traditional Chinese (繁體中文)", "巴哈姆特 (Bahamut) 魔獸世界哈啦板, Wowhead"),
+    "deDE": ("German (Deutsch)", "de.wowhead.com, Buffed.de, Warcraft Wiki"),
+    "frFR": ("French (Français)", "fr.wowhead.com, JudgeHype, Mamytwink"),
+    "esES": ("Spanish (Español)", "es.wowhead.com, Warcraft Wiki"),
+    "esMX": ("Spanish (Español Latinoamericano)", "es.wowhead.com, Warcraft Wiki"),
+    "ptBR": ("Portuguese (Português)", "pt.wowhead.com, Warcraft Wiki"),
+    "ruRU": ("Russian (Русский)", "ru.wowhead.com, Noob-Club, Warcraft Wiki"),
+    "itIT": ("Italian (Italiano)", "it.wowhead.com, Warcraft Wiki"),
+}
+
+# Multilingual coding intent keywords across EN / KO / JA / ZH / DE / FR / ES / PT / RU / IT
 CODING_KEYWORDS = (
+    # English / Technical
+    "addon",
+    "add-on",
+    "lua",
+    "macro",
+    "snippet",
+    "frame",
+    "createframe",
+    "stack trace",
+    "traceback",
+    ".toc",
+    "savedvariables",
+    "loadstring",
+    "refactor",
+    "debug",
+    # Korean
     "코드",
+    "코딩",
     "애드온",
     "에드온",
-    "lua",
     "루아",
     "프레임",
     "에러",
@@ -52,13 +86,45 @@ CODING_KEYWORDS = (
     "매크로",
     "스니펫",
     "함수",
-    ".toc",
-    "createframe",
     "이벤트",
     "디버깅",
     "수정해",
-    "만들어줘",
+    # Japanese
+    "アドオン",
+    "マクロ",
+    "コード",
+    "エラー",
+    "スクリプト",
+    "デバッグ",
+    # Chinese (Simplified & Traditional)
+    "插件",
+    "代码",
+    "程式碼",
+    "报错",
+    "錯誤",
+    "调试",
+    "除錯",
+    "巨集",
+    "编写",
+    # European (DE / FR / ES / PT / RU / IT)
+    "makro",
+    "fehler",
+    "erreur",
+    "código",
+    "codice",
+    "аддон",
+    "макрос",
+    "ошибк",
 )
+
+
+def resolve_locale_info(locale_code: str | None) -> tuple[str, str, str]:
+    code = (locale_code or "enUS").strip()
+    if code in LOCALE_CONFIG:
+        lang_name, sources = LOCALE_CONFIG[code]
+        return code, lang_name, sources
+    lang_name, sources = LOCALE_CONFIG["enUS"]
+    return "enUS", lang_name, sources
 
 
 def infer_request_mode(user_prompt: str, explicit_mode: str = "auto") -> str:
@@ -69,14 +135,12 @@ def infer_request_mode(user_prompt: str, explicit_mode: str = "auto") -> str:
         return "code"
     for kw in CODING_KEYWORDS:
         if kw in lowered:
-            # Distinguish "매크로 알려줘" / "애드온 만들어줘" -> code vs pure gameplay questions
             return "code"
     return "qa"
 
 
 def format_markdown_for_wow_chat(text: str) -> str:
     """Convert Markdown headings/bold into clean WoW color escape sequences for ScrollingMessageFrame."""
-    # Remove fenced code/macro/waypoint blocks from chat prose so chat stays super readable
     cleaned = LUA_BLOCK_RE.sub("", text or "")
     cleaned = MACRO_BLOCK_RE.sub("", cleaned)
     cleaned = WAYPOINT_BLOCK_RE.sub("", cleaned)
@@ -84,20 +148,15 @@ def format_markdown_for_wow_chat(text: str) -> str:
     lines: list[str] = []
     for raw_line in cleaned.splitlines():
         line = raw_line.rstrip()
-        # Convert ### Heading -> colored section header
         heading_match = re.match(r"^#{1,4}\s+(.*)$", line)
         if heading_match:
             line = f"|cff4285F4■ {heading_match.group(1).strip()}|r"
         else:
-            # Convert bullet `- ` or `* ` to `• `
             line = re.sub(r"^\s*[-*]\s+", "• ", line)
-            # Convert **bold** to WoW gold |cffFFD100bold|r
             line = re.sub(r"\*\*(.+?)\*\*", r"|cffFFD100\1|r", line)
-            # Convert `inline_code` to cyan |cff67D8EFinline_code|r
             line = re.sub(r"`([^`\n]+)`", r"|cff67D8EF\1|r", line)
         lines.append(line)
 
-    # Collapse 3+ consecutive blank lines
     joined = "\n".join(lines).strip()
     joined = re.sub(r"\n{3,}", "\n\n", joined)
     return joined
@@ -126,12 +185,12 @@ def extract_artifacts_from_reply(reply_text: str) -> AgentTurnResult:
             "mapID": int(map_id_s),
             "x": float(x_s),
             "y": float(y_s),
-            "label": (label_s or "추천 위치").strip() or "추천 위치",
+            "label": (label_s or "Waypoint").strip() or "Waypoint",
         }
 
     wow_chat_text = format_markdown_for_wow_chat(raw)
     if not wow_chat_text and lua_snippet:
-        wow_chat_text = "요청하신 Lua 코드를 작성했습니다. 아래 |cff34A853[▶ 응답 코드 실행]|r 또는 에디터 열기 버튼을 눌러 확인하세요."
+        wow_chat_text = "Lua snippet ready! Click |cff34A853[▶ Run Code]|r below to execute."
 
     return AgentTurnResult(
         text=wow_chat_text,
@@ -157,7 +216,9 @@ def _format_context_section(context: dict[str, Any] | None) -> str:
     parts.append(
         f"- Location: {loc.get('zone', '?')} / {loc.get('subZone', '')} (UiMapID={loc.get('mapID', 0)}, coords={loc.get('x', 0)}, {loc.get('y', 0)})"
     )
-    parts.append(f"- Client Build: {client.get('version', '?')} (TOC {client.get('tocVersion', 16001)})")
+    parts.append(
+        f"- Client Build: {client.get('version', '?')} (TOC {client.get('tocVersion', 16001)}, gameLocale={client.get('gameLocale', 'enUS')}, uiLocale={client.get('uiLocale', 'enUS')})"
+    )
 
     target = context.get("target")
     if isinstance(target, dict) and target.get("name"):
@@ -193,7 +254,7 @@ def _format_context_section(context: dict[str, Any] | None) -> str:
             if isinstance(q, dict):
                 objs = q.get("objectives")
                 obj_str = f" -> {', '.join(str(o) for o in objs)}" if isinstance(objs, list) and objs else ""
-                done_str = " [완료 가능]" if q.get("isComplete") else ""
+                done_str = " [Complete]" if q.get("isComplete") else ""
                 q_lines.append(
                     f"  • [{q.get('questID', '?')}] (Lv.{q.get('level', '?')}) {q.get('title', '')}{done_str}{obj_str}"
                 )
@@ -214,26 +275,36 @@ def format_enriched_prompt(
     errors: list[dict[str, Any]] | None = None,
     addons_dir: Path | None = None,
     mode: str = "auto",
+    locale: str | None = None,
 ) -> str:
-    """Build an intent-aware prompt for either WoW Q&A Guide mode or WoW Forever Addon Coding mode."""
+    """Build a multilingual, intent-aware prompt for WoW Q&A Guide or WoW Forever Addon Coding."""
     resolved_mode = infer_request_mode(user_prompt, mode)
+    ctx_locale = None
+    if isinstance(context, dict) and isinstance(context.get("client"), dict):
+        ctx_locale = context["client"].get("uiLocale")
+    loc_code, lang_name, regional_sources = resolve_locale_info(locale or ctx_locale or "enUS")
+
+    lang_rule = (
+        f"- Response Language: Respond in **{lang_name}** (`{loc_code}`) unless the user explicitly writes their question in a different language (in which case match the user's question language)."
+    )
 
     if resolved_mode == "qa":
         sections: list[str] = [
             "[WoW Forever (Interface: 16001) In-Game Q&A & Strategy Assistant]",
-            "- Role: 친절하고 정확한 월드 오브 워크래프트: 포에버(WoW Forever / 클래식 기반 시즌 서버) 전문 인게임 공략 가이드 & 백과사전입니다.",
-            "- Grounding: 퀘스트 동선, NPC 좌표, 아이템 드랍처/드랍률, 던전·레이드 보스 공략, 포에버 전용 특성/유산(Legacy) 시스템 등은 필요시 웹 검색(Wowhead, Warcraft Wiki, 와우 인벤)을 활용해 정확한 정보를 답변하세요.",
-            "- In-Game Chat Formatting: 답변은 와우 인게임 대화창(`ScrollingMessageFrame`)에 바로 출력됩니다. 마크다운 표(Table)는 쓰지 말고, 핵심 위주의 짧은 한국어 불릿(`• `)으로 정리하세요.",
-            "- Map Pin Support: 특정 위치/NPC 좌표를 안내할 때 `UiMapID`(현재 지역과 같다면 플레이어의 `UiMapID` 활용)와 좌표(`0~100` 기준 `x, y`)를 안다면 답변 맨 끝에 다음 블록을 추가하세요(유저가 인게임 버튼 하나로 지도 핀을 찍을 수 있습니다):\n  ```waypoint:1453,52.4,64.1,목표 이름```",
+            lang_rule,
+            f"- Grounding: Verify quest steps, NPC coordinates, item drop rates, boss mechanics, and WoW Forever seasonal/Legacy trait details via web search ({regional_sources}).",
+            "- In-Game Chat Formatting: Your answer renders inside a WoW `ScrollingMessageFrame` (no Markdown tables). Use concise bullet points (`• `) and short paragraphs.",
+            "- Map Pin Support: When giving world map coordinates and you know the `UiMapID` (or the player's current `UiMapID` from context), append a waypoint block at the end so the player can click [📍 Map Pin] in-game:\n  ```waypoint:1453,52.4,64.1,Target Location```",
             "- Do NOT modify local addon files unless the user explicitly asks to create or edit an addon.",
         ]
     else:
         sections = [
             "[WoW Forever (Interface: 16001) In-Game Coding & Q&A Request]",
+            lang_rule,
             "- Target Client: World of Warcraft: Forever (`## Interface: 16001`).",
-            "- Engine: Modern Retail/Midnight `C_*` APIs (`C_Spell`, `C_Item`, `C_UnitAuras`, `C_Container`, `BackdropTemplate`). Never use removed Classic globals (`GetSpellInfo`, `GetItemInfo`, `UnitAura`) or `toc >= 100000` guards.",
+            "- Engine: Modern Retail/Midnight `C_*` APIs (`C_Spell`, `C_Item`, `C_UnitAuras`, `C_Container`, `BackdropTemplate`, `Settings`). Never use removed Classic globals (`GetSpellInfo`, `GetItemInfo`, `UnitAura`) or `toc >= 100000` guards.",
             "- Policy: Plain-text Lua/XML only, no combat automation/botting, guard protected calls with `InCombatLockdown()`.",
-            "- Output Tip: 인게임에서 바로 테스트할 수 있는 Lua 코드는 ```lua ... ``` 블록으로, 매크로는 ```macro:매크로이름 ... ``` 블록으로, 지도 좌표 핀은 ```waypoint:mapID,x,y,설명``` 블록으로 감싸주세요. 설명은 한국어로 간결하게 작성하세요.",
+            "- Output Blocks: Wrap runnable in-game test snippets in ```lua ... ```, macros in ```macro:MacroName ... ```, and map pins in ```waypoint:mapID,x,y,Label```.",
         ]
         if addons_dir:
             sections.append(f"- Local AddOns Workspace: {addons_dir}")
@@ -300,7 +371,7 @@ def scaffold_forever_addon_files(addons_dir: Path, addon_name: str, description:
 
 
 class AntigravityBridgeRunner:
-    """Executes Q&A and coding prompts against `agy` CLI or `google-antigravity` Python SDK."""
+    """Executes multilingual Q&A and coding prompts via `agy` CLI or `google-antigravity` SDK."""
 
     def __init__(
         self,
@@ -351,6 +422,7 @@ class AntigravityBridgeRunner:
         context: dict[str, Any] | None = None,
         errors: list[dict[str, Any]] | None = None,
         mode: str = "auto",
+        locale: str | None = None,
     ) -> AgentTurnResult:
         enriched = format_enriched_prompt(
             user_prompt=prompt,
@@ -358,6 +430,7 @@ class AntigravityBridgeRunner:
             errors=errors,
             addons_dir=self.addons_dir,
             mode=mode,
+            locale=locale,
         )
         before = self._snapshot_mtimes()
 
@@ -377,7 +450,7 @@ class AntigravityBridgeRunner:
     def _run_via_cli(self, enriched_prompt: str) -> str:
         if not self.agy_bin or not Path(self.agy_bin).exists():
             raise RuntimeError(
-                "Antigravity CLI (`agy`)를 찾을 수 없습니다. `agy`를 설치하거나 `--backend sdk` 옵션을 사용하세요."
+                "Antigravity CLI (`agy`) not found. Install `agy` or pass `--backend sdk`."
             )
 
         cmd = [
@@ -404,28 +477,27 @@ class AntigravityBridgeRunner:
         if proc.returncode != 0:
             stderr_msg = (proc.stderr or "").strip()
             stdout_msg = (proc.stdout or "").strip()
-            return f"|cffEA4335[AGY CLI 오류]|r (exit {proc.returncode})\n{stderr_msg or stdout_msg}"
+            return f"|cffEA4335[AGY CLI Error]|r (exit {proc.returncode})\n{stderr_msg or stdout_msg}"
         return (proc.stdout or "").strip()
 
     async def _run_via_sdk(
         self,
         enriched_prompt: str,
         context: dict[str, Any] | None,
-        errors: list[dict[str, Any] | None],
+        errors: list[dict[str, Any]] | None,
     ) -> str:
         try:
             from google.antigravity import Agent, LocalAgentConfig  # type: ignore[import-not-found]
         except ImportError:
             return (
-                "|cffEA4335[SDK 미설치]|r `google-antigravity` 패키지가 설치되어 있지 않습니다.\n"
-                "`pip install google-antigravity` 를 실행하거나 기본 `--backend cli` 모드를 사용하세요."
+                "|cffEA4335[SDK Missing]|r `google-antigravity` package is not installed.\n"
+                "Run `pip install google-antigravity` or use the default `--backend cli` mode."
             )
 
         if not os.environ.get("GEMINI_API_KEY"):
             return (
-                "|cffEA4335[API 키 필요]|r `GEMINI_API_KEY` 환경변수가 설정되어 있지 않습니다.\n"
-                "Google AI Studio (https://aistudio.google.com/app/api-keys) 에서 API 키를 발급해 설정하거나\n"
-                "`--backend cli` 모드로 실행해 주세요."
+                "|cffEA4335[API Key Required]|r `GEMINI_API_KEY` is not set.\n"
+                "Create a key at Google AI Studio (https://aistudio.google.com/app/api-keys) or use `--backend cli`."
             )
 
         system_rules = ""
@@ -445,7 +517,7 @@ class AntigravityBridgeRunner:
             return f"Created WoW Forever (16001) addon files: {', '.join(created)}"
 
         def get_live_wow_state() -> str:
-            """Returns the latest player, target, active quests, location, and Lua error state from WoW Forever."""
+            """Returns the latest player, gear, professions, target, quests, and Lua error state from WoW Forever."""
             return f"Context: {context}\nErrors: {errors}"
 
         config = LocalAgentConfig(

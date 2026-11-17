@@ -226,6 +226,8 @@ function ns:CollectContext(includeMouseover)
             build = tostring(build or ""),
             buildDate = tostring(buildDate or ""),
             tocVersion = tonumber(tocVersion) or 0,
+            gameLocale = (GetLocale and GetLocale()) or "enUS",
+            uiLocale = (self.GetEffectiveLocale and self:GetEffectiveLocale()) or "enUS",
             hasCSpell = (C_Spell and C_Spell.GetSpellInfo ~= nil) or false,
             hasCUnitAuras = (C_UnitAuras ~= nil) or false,
         },
