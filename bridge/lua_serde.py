@@ -328,17 +328,20 @@ def write_inbox_lua(
     inbox_path: str | Path,
     messages: list[dict[str, Any]],
     daemon_status: str = "online",
+    available_models: list[dict[str, str]] | None = None,
 ) -> None:
     """Atomically write AddOn/WoWAGY/Inbox.lua for WoW /reload ingestion."""
     target = Path(inbox_path)
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    payload = {
+    payload: dict[str, Any] = {
         "bridgeVersion": "2026.11.17",
         "updatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
         "daemonStatus": daemon_status,
         "messages": messages[-25:],  # Keep Inbox lightweight
     }
+    if available_models:
+        payload["availableModels"] = available_models
 
     lua_code = (
         "local addonName, ns = ...\n"

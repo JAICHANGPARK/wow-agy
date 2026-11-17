@@ -164,6 +164,7 @@ class CompanionDaemon:
         self.state_file = REPO_ROOT / "bridge" / ".daemon_state.json"
         self.processed_ids: set[str] = set()
         self.inbox_messages: list[dict[str, Any]] = []
+        self.available_models: list[dict[str, str]] = []
         self.sv_mtimes: dict[str, tuple[int, int]] = {}
         self.last_clipboard_sig: str = ""
         self._load_state()
@@ -216,7 +217,12 @@ class CompanionDaemon:
         }
         self.inbox_messages.append(msg)
         self.inbox_messages = self.inbox_messages[-25:]
-        write_inbox_lua(self.inbox_path, self.inbox_messages, daemon_status="online")
+        write_inbox_lua(
+            self.inbox_path,
+            self.inbox_messages,
+            daemon_status="online",
+            available_models=self.available_models or None,
+        )
         self._save_state()
         return msg
 
@@ -274,19 +280,32 @@ class CompanionDaemon:
                 status = str(entry.get("status", ""))
                 req_mode = str(entry.get("mode", "auto"))
                 req_locale = str(entry.get("locale", "enUS"))
+                req_model = str(entry.get("model", "auto"))
+                req_effort = str(entry.get("effort", "auto"))
                 prompt = str(entry.get("prompt", "")).strip()
                 if not req_id or not prompt:
                     continue
                 if status != "pending" or req_id in self.processed_ids:
                     continue
 
-                print(f"\n[AGY Bridge] New in-game request ({req_id}, mode={req_mode}, locale={req_locale}): {prompt[:80]}")
+                print(
+                    f"\n[AGY Bridge] New in-game request ({req_id}, mode={req_mode}, "
+                    f"locale={req_locale}, model={req_model}, effort={req_effort}): {prompt[:80]}"
+                )
                 self.processed_ids.add(req_id)
 
                 ctx = entry.get("context") if isinstance(entry.get("context"), dict) else None
                 errs = entry.get("errors") if isinstance(entry.get("errors"), list) else None
 
-                result = self.runner.run_turn(prompt=prompt, context=ctx, errors=errs, mode=req_mode, locale=req_locale)
+                result = self.runner.run_turn(
+                    prompt=prompt,
+                    context=ctx,
+                    errors=errs,
+                    mode=req_mode,
+                    locale=req_locale,
+                    model=req_model,
+                    effort=req_effort,
+                )
                 self._record_and_flush_reply(req_id, prompt, result)
                 handled += 1
 
@@ -323,13 +342,26 @@ class CompanionDaemon:
 
         req_mode = str(payload.get("mode", "auto"))
         req_locale = str(payload.get("locale", "enUS"))
+        req_model = str(payload.get("model", "auto"))
+        req_effort = str(payload.get("effort", "auto"))
         req_id = f"clip-{int(time.time())}"
-        print(f"\n[AGY Clipboard] Zero-Reload request (mode={req_mode}, locale={req_locale}): {prompt[:80]}")
+        print(
+            f"\n[AGY Clipboard] Zero-Reload request (mode={req_mode}, locale={req_locale}, "
+            f"model={req_model}, effort={req_effort}): {prompt[:80]}"
+        )
 
         ctx = payload.get("context") if isinstance(payload.get("context"), dict) else None
         errs = payload.get("errors") if isinstance(payload.get("errors"), list) else None
 
-        result = self.runner.run_turn(prompt=prompt, context=ctx, errors=errs, mode=req_mode, locale=req_locale)
+        result = self.runner.run_turn(
+            prompt=prompt,
+            context=ctx,
+            errors=errs,
+            mode=req_mode,
+            locale=req_locale,
+            model=req_model,
+            effort=req_effort,
+        )
         self._record_and_flush_reply(req_id, prompt, result)
 
         # Build AGY_RES packet carrying WoW-formatted Q&A answer + optional ```lua``` + ```macro``` + ```waypoint```
@@ -356,6 +388,7 @@ class CompanionDaemon:
         return True
 
     def serve_forever(self) -> None:
+        self.available_models = self.runner.discover_available_models()
         auth_info = diagnose_auth(
             backend=self.runner.backend,
             agy_bin=self.runner.agy_bin,
@@ -368,6 +401,9 @@ class CompanionDaemon:
         print(" Antigravity WoW Forever (Interface: 16001) Companion Bridge")
         print("=" * 68)
         print(f" • Backend        : {self.runner.backend} ({self.runner.agy_bin})")
+        print(f" • Default Model  : {self.runner.default_model or 'auto (in-game / AGY default)'} (effort={self.runner.default_effort or 'auto'})")
+        if self.available_models:
+            print(f" • AGY Models     : {len(self.available_models)} discovered via `agy models`")
         print(f" • Auth Status    : {'✅ ' + auth_info.summary if auth_info.ok else '⚠️ ' + auth_info.summary}")
         if not auth_info.ok and auth_info.hint:
             print(f"   -> Hint        : {auth_info.hint}")
@@ -417,6 +453,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
         choices=["auto", "cli", "sdk"],
         default="auto",
         help="Antigravity 실행 엔진 (auto: google-antigravity SDK 설정 시 SDK 우선, 아니면 agy CLI 사용)",
+    )
+    p.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="기본 AI 모델 ID (인게임에서 'auto'일 때 적용. 인게임 모델 설정이 우선함)",
+    )
+    p.add_argument(
+        "--effort",
+        choices=["auto", "low", "medium", "high", "xhigh", "max"],
+        default="auto",
+        help="agy CLI 기본 추론 강도 (인게임에서 'auto'일 때 적용)",
     )
     p.add_argument(
         "--litert-model",
@@ -511,6 +559,8 @@ def main() -> int:
         agents_md_path=agents_md_path,
         backend=args.backend,
         continue_session=args.continue_session,
+        default_model=args.model,
+        default_effort=args.effort,
         litert_model_path=args.litert_model,
         local_openai_url=args.local_openai_url,
         local_openai_model=args.local_model,

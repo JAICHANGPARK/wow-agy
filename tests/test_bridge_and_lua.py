@@ -17,7 +17,10 @@ from bridge.agy_runner import (
     format_enriched_prompt,
     format_markdown_for_wow_chat,
     infer_request_mode,
+    parse_agy_models_output,
     resolve_locale_info,
+    sanitize_effort,
+    sanitize_model_id,
     scaffold_forever_addon_files,
 )
 from bridge.auth import diagnose_auth, load_dotenv_file, mask_secret, write_env_key_safely
@@ -37,10 +40,21 @@ ADDON_DIR = REPO_ROOT / "AddOn" / "WoWAGY"
 class FakeRunner:
     backend = "fake"
     agy_bin = "/usr/bin/true"
+    last_model: str | None = None
+    last_effort: str | None = None
 
     def run_turn(
-        self, prompt: str, context=None, errors=None, mode: str = "auto", locale: str | None = None
+        self,
+        prompt: str,
+        context=None,
+        errors=None,
+        mode: str = "auto",
+        locale: str | None = None,
+        model: str | None = None,
+        effort: str | None = None,
     ) -> AgentTurnResult:
+        self.last_model = model
+        self.last_effort = effort
         return AgentTurnResult(
             text=f"요청 처리 완료: {prompt}",
             lua_snippet="print('Hello WoW Forever 16001')",
@@ -423,6 +437,107 @@ class TestAddonAndBridge(unittest.TestCase):
                     os.environ.pop("WOW_ADDONS_DIR", None)
                 else:
                     os.environ["WOW_ADDONS_DIR"] = old_addons
+
+    def test_ingame_model_and_effort_selection(self) -> None:
+        # 1) Sanitization & CLI flag injection guards
+        self.assertIsNone(sanitize_model_id(None))
+        self.assertIsNone(sanitize_model_id("auto"))
+        self.assertIsNone(sanitize_model_id("DEFAULT"))
+        self.assertIsNone(sanitize_model_id("--dangerously-skip-permissions"))
+        self.assertIsNone(sanitize_model_id("bad model with spaces"))
+        self.assertEqual(sanitize_model_id("gemini-3.8-flash-low"), "gemini-3.8-flash-low")
+        self.assertEqual(sanitize_model_id("gemma4:26b"), "gemma4:26b")
+
+        self.assertIsNone(sanitize_effort("auto"))
+        self.assertIsNone(sanitize_effort("invalid"))
+        self.assertEqual(sanitize_effort("HIGH"), "high")
+        self.assertEqual(sanitize_effort("xhigh"), "xhigh")
+
+        # 2) `agy models` terminal output parser (handles spinner \r frames and ANSI codes)
+        raw_agy_models = (
+            "\r⠋ Fetching available models...\r⠙ Fetching available models..."
+            "\x1b[0mgemini-4-carbon-medium         Gemini 4 Carbon (Medium)\n"
+            "gemini-3.8-flash-low           Gemini 3.8 Flash (Low)\n"
+            "claude-sonnet-5-5-medium       Claude Sonnet 5.5 (Medium)\n"
+        )
+        parsed_models = parse_agy_models_output(raw_agy_models)
+        self.assertEqual(
+            parsed_models,
+            [
+                {"id": "gemini-4-carbon-medium", "label": "Gemini 4 Carbon (Medium)"},
+                {"id": "gemini-3.8-flash-low", "label": "Gemini 3.8 Flash (Low)"},
+                {"id": "claude-sonnet-5-5-medium", "label": "Claude Sonnet 5.5 (Medium)"},
+            ],
+        )
+
+        # 3) Daemon SavedVariables forwarding + Inbox availableModels roundtrip + CLI `--model` / `--effort`
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            addons_dir = tmp_path / "Interface" / "AddOns"
+            inbox_path = addons_dir / "WoWAGY" / "Inbox.lua"
+            sv_path = tmp_path / "WTF" / "Account" / "ACC1" / "SavedVariables" / "WoWAGY.lua"
+            sv_path.parent.mkdir(parents=True, exist_ok=True)
+            sv_path.write_text(
+                '''
+                WoWAGYDB = {
+                    ["outbox"] = {
+                        {
+                            ["id"] = "req-model-1",
+                            ["status"] = "pending",
+                            ["mode"] = "qa",
+                            ["locale"] = "koKR",
+                            ["model"] = "gemini-3.8-flash-low",
+                            ["effort"] = "high",
+                            ["prompt"] = "스톰윈드 그리핀 조련사 위치 알려줘",
+                        },
+                    },
+                }
+                ''',
+                encoding="utf-8",
+            )
+
+            fake = FakeRunner()
+            daemon = CompanionDaemon(
+                addons_dir=addons_dir,
+                inbox_path=inbox_path,
+                wow_flavor_dir=tmp_path,
+                explicit_sv=sv_path,
+                runner=fake,  # type: ignore[arg-type]
+                enable_clipboard=False,
+            )
+            daemon.state_file = tmp_path / ".state.json"
+            daemon.available_models = parsed_models
+
+            self.assertEqual(daemon.poll_saved_variables_once(), 1)
+            self.assertEqual(fake.last_model, "gemini-3.8-flash-low")
+            self.assertEqual(fake.last_effort, "high")
+
+            inbox_text = inbox_path.read_text(encoding="utf-8")
+            self.assertIn("availableModels", inbox_text)
+            self.assertIn("gemini-4-carbon-medium", inbox_text)
+
+            # Verify CLI runner passes --model and --effort flags cleanly to `agy`
+            mock_agy = tmp_path / "mock_agy.py"
+            mock_agy.write_text(
+                "#!/usr/bin/env python3\nimport sys\nprint('ARGS=' + '|'.join(sys.argv[1:]))\n",
+                encoding="utf-8",
+            )
+            mock_agy.chmod(0o755)
+            cli_runner = AntigravityBridgeRunner(
+                addons_dir=addons_dir,
+                agents_md_path=REPO_ROOT / "AGENTS.md",
+                backend="cli",
+                agy_bin=str(mock_agy),
+            )
+            turn = cli_runner.run_turn(
+                prompt="Test prompt",
+                mode="qa",
+                locale="enUS",
+                model="gemini-4-carbon-high",
+                effort="medium",
+            )
+            self.assertIn("--model|gemini-4-carbon-high", turn.raw_text)
+            self.assertIn("--effort|medium", turn.raw_text)
 
 
 if __name__ == "__main__":

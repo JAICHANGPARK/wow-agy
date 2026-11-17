@@ -25,6 +25,7 @@ It does not read game memory, scan screen pixels, inject synthetic input, or aut
 - **Live Lua editor**: Write and run Lua 5.1 code in-game (`loadstring`) with captured `print()` output and execution timing.
 - **Lua error debugger**: Chains `seterrorhandler` to record stack traces from other addons so you can send them to Antigravity for diagnosis.
 - **Safe macro helper**: Creates or updates macros outside combat, warns if `/run` or `/script` is present, and supports `/agy undo` to restore the previous macro state.
+- **In-game model and effort selector**: Switch AI models (`gemini-3.8-flash`, `gemini-4-*`, `claude-*`, local Ollama models, or live `agy models` entries) and reasoning effort (`auto`, `low`, `medium`, `high`, `xhigh`, `max`) directly from the header bar, Settings panel, or `/agy model`.
 - **12 UI languages**: Defaults to English (`enUS`), auto-detects all official WoW client locales (`GetLocale()`), and includes manual switching for Japanese (`jaJP`) and other languages via `/agy lang <code>`.
 
 ## Requirements
@@ -123,6 +124,8 @@ Open the window from the minimap `AGY` button (or Blizzard's Addon Compartment m
 | `/agy lua` | Open the Live Lua Studio tab |
 | `/agy errors` | Open the Lua Error Debugger tab |
 | `/agy run <code>` | Run a one-line Lua snippet |
+| `/agy model [id\|auto]` | Open the model selector modal or set a specific model ID |
+| `/agy effort [level\|auto]` | Set or cycle reasoning effort (`auto`, `low`, `medium`, `high`, `xhigh`, `max`) |
 | `/agy lang <code\|auto>` | Change UI and AI response language (`enUS`, `koKR`, `jaJP`, `zhCN`, `zhTW`, `deDE`, `frFR`, `esES`, `esMX`, `ptBR`, `ruRU`, `itIT`) |
 | `/agy undo` | Revert the last macro created or updated by `wow-agy` |
 | `/agy about` | Print version, author, and repository URL |

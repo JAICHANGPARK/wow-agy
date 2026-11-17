@@ -38,6 +38,51 @@ WAYPOINT_BLOCK_RE = re.compile(
     r"```waypoint:(\d+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,?\s*([^\n`]*)```",
     re.IGNORECASE,
 )
+SAFE_MODEL_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,119}$")
+VALID_EFFORTS = frozenset({"low", "medium", "high", "xhigh", "max"})
+ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+AGY_MODEL_ROW_RE = re.compile(r"^([a-zA-Z0-9][a-zA-Z0-9._:/@-]*)\s{2,}(.+)$")
+
+
+def sanitize_model_id(raw: str | None) -> str | None:
+    """Validate a model identifier and return None for 'auto'/empty or unsafe strings."""
+    if not raw or not isinstance(raw, str):
+        return None
+    cleaned = raw.strip()
+    if not cleaned or cleaned.lower() in ("auto", "default"):
+        return None
+    if SAFE_MODEL_ID_RE.match(cleaned):
+        return cleaned
+    return None
+
+
+def sanitize_effort(raw: str | None) -> str | None:
+    """Validate an Antigravity reasoning effort level; return None for 'auto'/unset."""
+    if not raw or not isinstance(raw, str):
+        return None
+    cleaned = raw.strip().lower()
+    if cleaned in VALID_EFFORTS:
+        return cleaned
+    return None
+
+
+def parse_agy_models_output(raw_output: str) -> list[dict[str, str]]:
+    """Parse `agy models` terminal output (ignoring ANSI/spinner frames) into [{id, label}]."""
+    cleaned = ANSI_ESCAPE_RE.sub("", raw_output or "")
+    models: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for segment in re.split(r"[\r\n]+", cleaned):
+        line = re.sub(r"^.*?Fetching available models\.+\s*", "", segment).strip()
+        if not line:
+            continue
+        m = AGY_MODEL_ROW_RE.match(line)
+        if not m:
+            continue
+        model_id, label = m.group(1).strip(), m.group(2).strip()
+        if sanitize_model_id(model_id) and model_id not in seen:
+            seen.add(model_id)
+            models.append({"id": model_id, "label": label})
+    return models
 
 # Language metadata & regional WoW search grounding hints (Default: English enUS)
 LOCALE_CONFIG: dict[str, tuple[str, str]] = {
@@ -388,6 +433,8 @@ class AntigravityBridgeRunner:
         backend: str = "auto",
         agy_bin: str | None = None,
         continue_session: bool = False,
+        default_model: str | None = None,
+        default_effort: str | None = None,
         litert_model_path: str | None = None,
         local_openai_url: str | None = None,
         local_openai_model: str | None = None,
@@ -399,6 +446,8 @@ class AntigravityBridgeRunner:
         self.addons_dir = addons_dir.resolve()
         self.agents_md_path = agents_md_path.resolve()
         self.continue_session = continue_session
+        self.default_model = sanitize_model_id(default_model)
+        self.default_effort = sanitize_effort(default_effort)
         self.timeout_sec = max(10, int(timeout_sec))
         self.litert_model_path = (
             os.path.expanduser(litert_model_path) if litert_model_path else None
@@ -490,6 +539,26 @@ class AntigravityBridgeRunner:
             return f"|cffEA4335[예기치 않은 오류]|r ({type(exc).__name__}) {msg[:300]}"
         return f"|cffEA4335[Unexpected Error]|r ({type(exc).__name__}) {msg[:300]}"
 
+    def discover_available_models(self) -> list[dict[str, str]]:
+        """Query `agy models` if `agy` is installed so the in-game addon gets live model choices."""
+        if not self.agy_bin or not Path(self.agy_bin).exists():
+            return []
+        try:
+            proc = subprocess.run(
+                [self.agy_bin, "models"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=8,
+                check=False,
+            )
+            if proc.returncode == 0 and proc.stdout:
+                return parse_agy_models_output(proc.stdout)
+        except Exception:
+            pass
+        return []
+
     def run_turn(
         self,
         prompt: str,
@@ -497,7 +566,12 @@ class AntigravityBridgeRunner:
         errors: list[dict[str, Any]] | None = None,
         mode: str = "auto",
         locale: str | None = None,
+        model: str | None = None,
+        effort: str | None = None,
     ) -> AgentTurnResult:
+        eff_model = sanitize_model_id(model) or self.default_model
+        eff_effort = sanitize_effort(effort) or self.default_effort
+
         enriched = format_enriched_prompt(
             user_prompt=prompt,
             context=context,
@@ -510,9 +584,13 @@ class AntigravityBridgeRunner:
 
         try:
             if self.backend == "cli":
-                raw_reply = self._run_via_cli(enriched, locale=locale)
+                raw_reply = self._run_via_cli(
+                    enriched, locale=locale, model=eff_model, effort=eff_effort
+                )
             elif self.backend == "sdk":
-                raw_reply = asyncio.run(self._run_via_sdk(enriched, context, errors, locale=locale))
+                raw_reply = asyncio.run(
+                    self._run_via_sdk(enriched, context, errors, locale=locale, model=eff_model)
+                )
             else:
                 raise ValueError(f"Unknown backend: {self.backend}")
         except Exception as exc:
@@ -525,7 +603,13 @@ class AntigravityBridgeRunner:
         self.has_first_turn = True
         return result
 
-    def _run_via_cli(self, enriched_prompt: str, locale: str | None = None) -> str:
+    def _run_via_cli(
+        self,
+        enriched_prompt: str,
+        locale: str | None = None,
+        model: str | None = None,
+        effort: str | None = None,
+    ) -> str:
         if not self.agy_bin or not Path(self.agy_bin).exists():
             raise FileNotFoundError(
                 "Antigravity CLI (`agy`) not found. Run `uv run wow-agy-daemon --setup-auth` or pass `--backend sdk`."
@@ -540,6 +624,10 @@ class AntigravityBridgeRunner:
             "--add-dir",
             str(self.addons_dir),
         ]
+        if model:
+            cmd.extend(["--model", model])
+        if effort:
+            cmd.extend(["--effort", effort])
         if self.continue_session and self.has_first_turn:
             cmd.append("--continue")
 
@@ -573,6 +661,7 @@ class AntigravityBridgeRunner:
         context: dict[str, Any] | None,
         errors: list[dict[str, Any]] | None,
         locale: str | None = None,
+        model: str | None = None,
     ) -> str:
         try:
             from google.antigravity import (  # type: ignore[import-not-found]
@@ -621,7 +710,7 @@ class AntigravityBridgeRunner:
         # 2) Local OpenAI-compatible server (Ollama / LM Studio, no API key needed)
         elif self.local_openai_url:
             config = LocalOpenAIAgentConfig(
-                model=self.local_openai_model,
+                model=model or self.local_openai_model or "gemma4:26b",
                 base_url=self.local_openai_url,
                 workspaces=[str(addons_root)],
                 system_instructions=system_rules,
@@ -630,23 +719,21 @@ class AntigravityBridgeRunner:
         # 3) Gemini Enterprise / Vertex AI (`vertex=True`: Express API Key or Standard ADC)
         elif self.use_vertex:
             api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+            sdk_kwargs: dict[str, Any] = {
+                "vertex": True,
+                "workspaces": [str(addons_root)],
+                "system_instructions": system_rules,
+                "tools": custom_tools,
+            }
+            if model:
+                sdk_kwargs["model"] = model
             if api_key:
-                config = LocalAgentConfig(
-                    vertex=True,
-                    api_key=api_key,
-                    workspaces=[str(addons_root)],
-                    system_instructions=system_rules,
-                    tools=custom_tools,
-                )
+                sdk_kwargs["api_key"] = api_key
+                config = LocalAgentConfig(**sdk_kwargs)
             elif self.vertex_project:
-                config = LocalAgentConfig(
-                    vertex=True,
-                    project=self.vertex_project,
-                    location=self.vertex_location,
-                    workspaces=[str(addons_root)],
-                    system_instructions=system_rules,
-                    tools=custom_tools,
-                )
+                sdk_kwargs["project"] = self.vertex_project
+                sdk_kwargs["location"] = self.vertex_location
+                config = LocalAgentConfig(**sdk_kwargs)
             else:
                 return (
                     "|cffEA4335[Vertex Auth Required]|r Run `gcloud auth application-default login` "
@@ -660,11 +747,14 @@ class AntigravityBridgeRunner:
                     "Run `python3 bridge/daemon.py --setup-auth`, create a key at "
                     "https://aistudio.google.com/app/api-keys, or use `--backend cli`."
                 )
-            config = LocalAgentConfig(
-                workspaces=[str(addons_root)],
-                system_instructions=system_rules,
-                tools=custom_tools,
-            )
+            sdk_kwargs = {
+                "workspaces": [str(addons_root)],
+                "system_instructions": system_rules,
+                "tools": custom_tools,
+            }
+            if model:
+                sdk_kwargs["model"] = model
+            config = LocalAgentConfig(**sdk_kwargs)
 
         chunks: list[str] = []
 

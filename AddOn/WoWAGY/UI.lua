@@ -242,6 +242,180 @@ function ns:RefreshModeButton()
     self.modeBtn.label:SetText(self.L[key])
 end
 
+function ns:RefreshModelButton()
+    if self.uiRefs and self.uiRefs.modelBtn and self.GetModelDisplayLabel then
+        self.uiRefs.modelBtn.label:SetText(self:GetModelDisplayLabel(15))
+    end
+    if self.settingsModelBtn and self.GetModelDisplayLabel then
+        self.settingsModelBtn:SetText(self:GetModelDisplayLabel(18))
+    end
+    if self.settingsEffortBtn and self.GetEffortDisplayLabel then
+        self.settingsEffortBtn:SetText(self:GetEffortDisplayLabel())
+    end
+    if self.modelModal and self.modelModal:IsShown() and self.modelModal.RefreshSelection then
+        self.modelModal:RefreshSelection()
+    end
+end
+
+function ns:ShowModelSelectorModal()
+    if not self.modelModal then
+        local m = CreateFrame("Frame", "WoWAGYModelModal", UIParent, "BackdropTemplate")
+        m:SetSize(540, 430)
+        m:SetPoint("CENTER", 0, 30)
+        m:SetFrameStrata("DIALOG")
+        m:EnableMouse(true)
+        m:SetMovable(true)
+        m:RegisterForDrag("LeftButton")
+        m:SetScript("OnDragStart", m.StartMoving)
+        m:SetScript("OnDragStop", m.StopMovingOrSizing)
+        ApplyBackdrop(m, COLORS.bgMain, COLORS.borderActive)
+        if UISpecialFrames then
+            table.insert(UISpecialFrames, "WoWAGYModelModal")
+        end
+
+        m.title = m:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        m.title:SetPoint("TOPLEFT", 16, -14)
+
+        local closeBtn = CreateFlatButton(m, "X", 26, 24, COLORS.btnNormal, function()
+            m:Hide()
+        end)
+        closeBtn:SetPoint("TOPRIGHT", -12, -10)
+
+        m.sub = m:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        m.sub:SetPoint("TOPLEFT", 16, -38)
+        m.sub:SetWidth(508)
+        m.sub:SetJustifyH("LEFT")
+
+        local listWrap = CreateFrame("Frame", nil, m, "BackdropTemplate")
+        listWrap:SetSize(508, 214)
+        listWrap:SetPoint("TOPLEFT", 16, -68)
+        ApplyBackdrop(listWrap, COLORS.bgInput, COLORS.border)
+
+        local scroll = CreateFrame("ScrollFrame", nil, listWrap, "UIPanelScrollFrameTemplate")
+        scroll:SetPoint("TOPLEFT", 6, -6)
+        scroll:SetPoint("BOTTOMRIGHT", -28, 6)
+
+        local content = CreateFrame("Frame", nil, scroll)
+        content:SetSize(468, 200)
+        scroll:SetScrollChild(content)
+        m.listContent = content
+        m.rows = {}
+
+        m.effortLabel = m:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        m.effortLabel:SetPoint("TOPLEFT", listWrap, "BOTTOMLEFT", 0, -10)
+
+        m.effortBtns = {}
+        local effortList = self.EFFORT_ORDER or { "auto", "low", "medium", "high", "xhigh", "max" }
+        for idx, eff in ipairs(effortList) do
+            local eb = CreateFlatButton(m, eff:upper(), 80, 24, COLORS.btnNormal, function()
+                ns:SetPreferredEffort(eff)
+            end)
+            eb:SetPoint("TOPLEFT", 16 + (idx - 1) * 85, -308)
+            eb.effortValue = eff
+            m.effortBtns[idx] = eb
+        end
+
+        m.customLabel = m:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        m.customLabel:SetPoint("TOPLEFT", 16, -344)
+
+        local inputWrap = CreateFrame("Frame", nil, m, "BackdropTemplate")
+        inputWrap:SetSize(396, 28)
+        inputWrap:SetPoint("TOPLEFT", 16, -362)
+        ApplyBackdrop(inputWrap, COLORS.bgInput, COLORS.border)
+
+        local customBox = CreateFrame("EditBox", nil, inputWrap)
+        customBox:SetPoint("TOPLEFT", 8, -4)
+        customBox:SetPoint("BOTTOMRIGHT", -8, 4)
+        customBox:SetAutoFocus(false)
+        customBox:SetFontObject(ChatFontNormal or GameFontHighlightSmall)
+        customBox:SetMaxLetters(120)
+        customBox:SetScript("OnEscapePressed", function(selfBox)
+            selfBox:ClearFocus()
+        end)
+        customBox:SetScript("OnEnterPressed", function(selfBox)
+            if ns:SetPreferredModel(selfBox:GetText()) then
+                selfBox:ClearFocus()
+            end
+        end)
+        m.customBox = customBox
+
+        m.applyBtn = CreateFlatButton(m, self.L.BTN_APPLY_MODEL, 104, 28, COLORS.btnGreen, function()
+            if ns:SetPreferredModel(m.customBox:GetText()) then
+                m.customBox:ClearFocus()
+            end
+        end)
+        m.applyBtn:SetPoint("LEFT", inputWrap, "RIGHT", 8, 0)
+
+        m.closeBottomBtn = CreateFlatButton(m, self.L.BTN_CLOSE, 104, 24, COLORS.btnNormal, function()
+            m:Hide()
+        end)
+        m.closeBottomBtn:SetPoint("BOTTOMRIGHT", -16, 10)
+
+        function m:RefreshSelection()
+            local curModel = ns:GetSelectedModel()
+            local curEffort = ns:GetSelectedEffort()
+            local models = ns:GetAvailableModels()
+
+            for i, item in ipairs(models) do
+                local row = self.rows[i]
+                if not row then
+                    row = CreateFlatButton(self.listContent, "", 468, 26, COLORS.btnNormal)
+                    row:SetPoint("TOPLEFT", 0, -((i - 1) * 28))
+                    row.label:ClearAllPoints()
+                    row.label:SetPoint("LEFT", 10, 0)
+                    row.label:SetJustifyH("LEFT")
+                    self.rows[i] = row
+                end
+                row.modelId = item.id
+                if item.id == "auto" then
+                    row.label:SetText("|cffFFD100" .. tostring(item.label) .. "|r")
+                else
+                    row.label:SetText(string.format("%s  |cff9aa0a6[%s]|r", tostring(item.label), tostring(item.id)))
+                end
+                row:SetScript("OnClick", function()
+                    self.customBox:SetText(item.id)
+                    ns:SetPreferredModel(item.id)
+                end)
+                if item.id == curModel then
+                    ApplyBackdrop(row, COLORS.btnPrimary, COLORS.borderActive)
+                else
+                    ApplyBackdrop(row, COLORS.btnNormal, COLORS.border)
+                end
+                row:Show()
+            end
+
+            for j = #models + 1, #self.rows do
+                self.rows[j]:Hide()
+            end
+            self.listContent:SetHeight(math.max(200, #models * 28))
+
+            for _, eb in ipairs(self.effortBtns) do
+                if eb.effortValue == "auto" then
+                    eb.label:SetText((ns.L and ns.L.MODEL_AUTO_SHORT) or "Auto")
+                end
+                if eb.effortValue == curEffort then
+                    ApplyBackdrop(eb, COLORS.btnPrimary, COLORS.borderActive)
+                else
+                    ApplyBackdrop(eb, COLORS.btnNormal, COLORS.border)
+                end
+            end
+        end
+
+        self.modelModal = m
+    end
+
+    local m = self.modelModal
+    m.title:SetText(self.L.MODEL_MODAL_TITLE)
+    m.sub:SetText(self.L.MODEL_MODAL_SUB)
+    m.effortLabel:SetText(self.L.MODEL_EFFORT_LABEL)
+    m.customLabel:SetText(self.L.MODEL_CUSTOM_LABEL)
+    m.applyBtn.label:SetText(self.L.BTN_APPLY_MODEL)
+    m.closeBottomBtn.label:SetText(self.L.BTN_CLOSE)
+    m.customBox:SetText(self:GetSelectedModel())
+    m:RefreshSelection()
+    m:Show()
+end
+
 -- Live language refresh across all visible widgets without needing /reload
 function ns:RebuildUIForLocale()
     if self.IngestInbox then
@@ -256,6 +430,9 @@ function ns:RebuildUIForLocale()
     local ver = self.GetAddonMeta and self:GetAddonMeta("Version", self.VERSION) or "2026.11.17"
     r.headerTitle:SetText("|cff4285F4wow-agy|r |cff34A853AI Guide & Studio|r  |cff9aa0a6v" .. ver .. " " .. L.APP_SUBTITLE .. "|r")
     r.langBtn.label:SetText(self:GetLocaleDisplayLabel())
+    if r.modelBtn then
+        r.modelBtn.label:SetText(self:GetModelDisplayLabel(15))
+    end
 
     self.tabButtons[1].label:SetText(L.TAB_1)
     self.tabButtons[2].label:SetText(L.TAB_2)
@@ -318,6 +495,7 @@ function ns:RefreshChatTab()
     if self.uiRefs and self.uiRefs.langBtn then
         self.uiRefs.langBtn.label:SetText(self:GetLocaleDisplayLabel())
     end
+    self:RefreshModelButton()
 
     local pendingCount = 0
     for _, req in ipairs(self.db.outbox) do
@@ -487,6 +665,11 @@ function ns:BuildMainFrame()
     local ver = self.GetAddonMeta and self:GetAddonMeta("Version", self.VERSION) or "2026.11.17"
     local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -14)
+    title:SetWidth(275)
+    title:SetJustifyH("LEFT")
+    if title.SetWordWrap then
+        title:SetWordWrap(false)
+    end
     title:SetText("|cff4285F4wow-agy|r |cff34A853AI Guide & Studio|r  |cff9aa0a6v" .. ver .. " " .. L.APP_SUBTITLE .. "|r")
     refs.headerTitle = title
 
@@ -495,14 +678,26 @@ function ns:BuildMainFrame()
     end)
     closeBtn:SetPoint("TOPRIGHT", -12, -10)
 
-    local langBtn = CreateFlatButton(f, self:GetLocaleDisplayLabel(), 138, 24, COLORS.btnNormal, function()
+    local langBtn = CreateFlatButton(f, self:GetLocaleDisplayLabel(), 118, 24, COLORS.btnNormal, function()
         ns:CycleLocale()
     end)
     langBtn:SetPoint("RIGHT", closeBtn, "LEFT", -6, 0)
     refs.langBtn = langBtn
 
+    local modelBtn = CreateFlatButton(f, self:GetModelDisplayLabel(15), 156, 24, COLORS.btnNormal)
+    modelBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    modelBtn:SetScript("OnClick", function(_, button)
+        if button == "RightButton" then
+            ns:SetPreferredModel("auto")
+        else
+            ns:ShowModelSelectorModal()
+        end
+    end)
+    modelBtn:SetPoint("RIGHT", langBtn, "LEFT", -6, 0)
+    refs.modelBtn = modelBtn
+
     self.statusLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    self.statusLabel:SetPoint("RIGHT", langBtn, "LEFT", -10, 0)
+    self.statusLabel:SetPoint("RIGHT", modelBtn, "LEFT", -8, 0)
 
     local tabNames = { L.TAB_1, L.TAB_2, L.TAB_3, L.TAB_4 }
     self.tabButtons = {}

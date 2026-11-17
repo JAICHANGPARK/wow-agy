@@ -84,7 +84,7 @@ function ns:InitSettingsCategory()
     end)
 
     local langBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    langBtn:SetSize(220, 28)
+    langBtn:SetSize(180, 28)
     langBtn:SetPoint("TOPLEFT", 16, -216)
     langBtn:SetText(self:GetLocaleDisplayLabel())
     langBtn:SetScript("OnShow", function(selfBtn)
@@ -94,7 +94,40 @@ function ns:InitSettingsCategory()
         ns:CycleLocale()
         selfBtn:SetText(ns:GetLocaleDisplayLabel())
         sub:SetText(ns.L.SETTINGS_DESC)
+        if ns.settingsModelBtn then
+            ns.settingsModelBtn:SetText(ns:GetModelDisplayLabel(18))
+        end
+        if ns.settingsEffortBtn then
+            ns.settingsEffortBtn:SetText(ns:GetEffortDisplayLabel())
+        end
     end)
+
+    local modelBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    modelBtn:SetSize(210, 28)
+    modelBtn:SetPoint("LEFT", langBtn, "RIGHT", 10, 0)
+    modelBtn:SetText(self:GetModelDisplayLabel(18))
+    modelBtn:SetScript("OnShow", function(selfBtn)
+        selfBtn:SetText(ns:GetModelDisplayLabel(18))
+    end)
+    modelBtn:SetScript("OnClick", function()
+        if ns.ShowModelSelectorModal then
+            ns:ShowModelSelectorModal()
+        end
+    end)
+    self.settingsModelBtn = modelBtn
+
+    local effortBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    effortBtn:SetSize(160, 28)
+    effortBtn:SetPoint("LEFT", modelBtn, "RIGHT", 10, 0)
+    effortBtn:SetText(self:GetEffortDisplayLabel())
+    effortBtn:SetScript("OnShow", function(selfBtn)
+        selfBtn:SetText(ns:GetEffortDisplayLabel())
+    end)
+    effortBtn:SetScript("OnClick", function(selfBtn)
+        ns:CycleEffort()
+        selfBtn:SetText(ns:GetEffortDisplayLabel())
+    end)
+    self.settingsEffortBtn = effortBtn
 
     local openBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     openBtn:SetSize(220, 28)

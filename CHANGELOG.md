@@ -20,6 +20,7 @@ Initial public release of `wow-agy` for **World of Warcraft: Forever** (`Interfa
   - Added combat-safe macro creation and update helper (`InCombatLockdown()` guard, `/run` and `/script` inspection warning, and `/agy undo` backup restore).
   - Added re-entrancy guarded and throttled runtime Lua error catcher (`seterrorhandler` chain) to inspect stack traces from any installed addon.
   - Added draggable minimap button, modern `AddonCompartmentFunc` menu entry, and native `Settings` panel integration.
+  - Added in-game AI model and reasoning effort selector (header button modal, `Settings` panel controls, `/agy model [id]`, `/agy effort [level]`, and automatic `agy models` discovery sync).
   - Added 12 UI and response languages (`enUS` default, `koKR`, `jaJP`, `zhCN`, `zhTW`, `deDE`, `frFR`, `esES`, `esMX`, `ptBR`, `ruRU`, `itIT`).
 
 - **Local Companion Bridge & MCP Server (`bridge/`)**:

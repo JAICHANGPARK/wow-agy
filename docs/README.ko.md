@@ -25,6 +25,7 @@
 - **Live Lua 에디터**: `/reload` 없이 `loadstring`으로 Lua 코드를 즉시 실행하고 `print()` 출력과 소요 시간을 확인합니다.
 - **런타임 Lua 에러 디버거**: `seterrorhandler` 체인을 통해 다른 애드온에서 발생한 에러와 스택 트레이스를 모아 두고 원인 분석 및 수정을 요청할 수 있습니다.
 - **매크로 생성 및 되돌리기**: 비전투 상태에서 매크로를 생성/갱신하며, `/agy undo`로 직전 매크로 상태를 복구할 수 있습니다.
+- **인게임 모델 및 추론 강도 선택**: 데몬 재시작 없이 상단 `모델` 버튼, 애드온 설정 패널, 또는 `/agy model <모델명>` 명령어로 AI 모델(`gemini-3.8-flash`, `gemini-4-*`, `claude-*`, 로컬 Ollama 모델 등)과 추론 강도(`auto`, `low`, `medium`, `high`, `xhigh`, `max`)를 실시간으로 바꿀 수 있습니다.
 - **다국어 지원**: 기본 언어는 영어(`enUS`)이며, 와우 클라이언트의 공식 로케일(`GetLocale()`) 자동 감지 및 한국어(`koKR`), 일본어(`jaJP`), 중국어(`zhCN`/`zhTW`) 등 12개 언어 실시간 전환(`/agy lang <코드>`)을 지원합니다.
 
 ## 요구 사항
@@ -115,6 +116,8 @@ agy mcp add wow-forever -- env WOW_FOREVER_DIR="/Applications/World of Warcraft/
 | `/agy lua` | Live Lua 에디터 탭 열기 |
 | `/agy errors` | Lua 에러 디버거 탭 열기 |
 | `/agy run <코드>` | 한 줄 Lua 코드 즉시 실행 |
+| `/agy model [모델ID\|auto]` | 모델 선택 창 열기 또는 특정 모델 ID 즉시 적용 |
+| `/agy effort [강도\|auto]` | 추론 강도 변경 또는 순환 (`auto`, `low`, `medium`, `high`, `xhigh`, `max`) |
 | `/agy lang <코드\|auto>` | 표시 언어 및 AI 답변 언어 변경 (`koKR`, `enUS`, `jaJP`, `zhCN` 등) |
 | `/agy undo` | 직전에 생성하거나 수정한 매크로 되돌리기 |
 | `/agy about` | 버전, 제작자, GitHub 저장소 주소 출력 |

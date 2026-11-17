@@ -357,6 +357,8 @@ function ns:BuildClipboardPacket(promptText, modeOverride)
         toc = 16001,
         locale = (self.GetEffectiveLocale and self:GetEffectiveLocale()) or "enUS",
         mode = reqMode,
+        model = (self.GetSelectedModel and self:GetSelectedModel()) or "auto",
+        effort = (self.GetSelectedEffort and self:GetSelectedEffort()) or "auto",
         timestamp = self:FormatTimestamp(),
         prompt = self:SafeToString(promptText, ""),
         context = ctx,
