@@ -275,6 +275,7 @@ class TestAddonAndBridge(unittest.TestCase):
                 self.assertTrue(resolved.exists(), f"Broken link {rel_target!r} in {readme.name}")
 
         # Enforce zero em-dashes (U+2014) and en-dashes (U+2013) across all repository source & doc files
+        binary_suffixes = {".pyc", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".ico", ".tga", ".blp"}
         for p in sorted(REPO_ROOT.rglob("*")):
             if (
                 not p.is_file()
@@ -282,7 +283,7 @@ class TestAddonAndBridge(unittest.TestCase):
                 or ".venv" in p.parts
                 or "__pycache__" in p.parts
                 or p.name == "uv.lock"
-                or p.suffix == ".pyc"
+                or p.suffix.lower() in binary_suffixes
             ):
                 continue
             content = p.read_text(encoding="utf-8", errors="ignore")

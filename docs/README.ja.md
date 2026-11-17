@@ -1,3 +1,5 @@
+![wow-agy](assets/banner.jpg)
+
 # wow-agy
 
 [English](../README.md) | [한국어](README.ko.md) | 日本語 | [简体中文](README.zh-CN.md)
