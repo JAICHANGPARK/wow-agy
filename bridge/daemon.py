@@ -372,7 +372,25 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--backend",
         choices=["auto", "cli", "sdk"],
         default="auto",
-        help="Antigravity 실행 엔진 선택 (auto: 설치된 agy CLI 우선, sdk: google-antigravity SDK)",
+        help="Antigravity 실행 엔진 (auto: google-antigravity SDK 설정 시 SDK 우선, 아니면 agy CLI 사용)",
+    )
+    p.add_argument(
+        "--litert-model",
+        type=str,
+        default=None,
+        help="Google Antigravity SDK 온디바이스 로컬 모델(.litertlm) 경로 (API 키 불필요)",
+    )
+    p.add_argument(
+        "--local-openai-url",
+        type=str,
+        default=None,
+        help="Google Antigravity SDK 로컬 서버 URL (예: Ollama http://localhost:11434/v1, LM Studio http://localhost:1234/v1)",
+    )
+    p.add_argument(
+        "--local-model",
+        type=str,
+        default=None,
+        help="--local-openai-url 사용 시 로컬 모델 이름 (예: gemma4:26b)",
     )
     p.add_argument(
         "--no-clipboard",
@@ -411,6 +429,9 @@ def main() -> int:
         agents_md_path=agents_md_path,
         backend=args.backend,
         continue_session=args.continue_session,
+        litert_model_path=args.litert_model,
+        local_openai_url=args.local_openai_url,
+        local_openai_model=args.local_model,
     )
 
     daemon = CompanionDaemon(

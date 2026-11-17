@@ -1,0 +1,2 @@
+# Official Google Antigravity Python SDK (required for `--backend sdk`; optional when using `agy` CLI)
+google-antigravity

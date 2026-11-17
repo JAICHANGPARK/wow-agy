@@ -380,20 +380,42 @@ class AntigravityBridgeRunner:
         backend: str = "auto",
         agy_bin: str | None = None,
         continue_session: bool = False,
+        litert_model_path: str | None = None,
+        local_openai_url: str | None = None,
+        local_openai_model: str | None = None,
     ) -> None:
         self.addons_dir = addons_dir.resolve()
         self.agents_md_path = agents_md_path.resolve()
         self.continue_session = continue_session
+        self.litert_model_path = (
+            os.path.expanduser(litert_model_path) if litert_model_path else None
+        )
+        self.local_openai_url = local_openai_url
+        self.local_openai_model = local_openai_model
         self.agy_bin = agy_bin or shutil.which("agy") or os.path.expanduser("~/.local/bin/agy")
         self.has_first_turn = False
 
         if backend == "auto":
-            if self.agy_bin and Path(self.agy_bin).exists():
+            if self.litert_model_path or self.local_openai_url:
+                self.backend = "sdk"
+            elif self._is_sdk_ready():
+                self.backend = "sdk"
+            elif self.agy_bin and Path(self.agy_bin).exists():
                 self.backend = "cli"
             else:
                 self.backend = "sdk"
         else:
             self.backend = backend
+
+    @staticmethod
+    def _is_sdk_ready() -> bool:
+        if not os.environ.get("GEMINI_API_KEY"):
+            return False
+        try:
+            import google.antigravity  # noqa: F401 # type: ignore[import-not-found]
+            return True
+        except ImportError:
+            return False
 
     def _snapshot_mtimes(self) -> dict[str, float]:
         snap: dict[str, float] = {}
@@ -487,17 +509,16 @@ class AntigravityBridgeRunner:
         errors: list[dict[str, Any]] | None,
     ) -> str:
         try:
-            from google.antigravity import Agent, LocalAgentConfig  # type: ignore[import-not-found]
+            from google.antigravity import (  # type: ignore[import-not-found]
+                Agent,
+                LiteRTAgentConfig,
+                LocalAgentConfig,
+                LocalOpenAIAgentConfig,
+            )
         except ImportError:
             return (
                 "|cffEA4335[SDK Missing]|r `google-antigravity` package is not installed.\n"
-                "Run `pip install google-antigravity` or use the default `--backend cli` mode."
-            )
-
-        if not os.environ.get("GEMINI_API_KEY"):
-            return (
-                "|cffEA4335[API Key Required]|r `GEMINI_API_KEY` is not set.\n"
-                "Create a key at Google AI Studio (https://aistudio.google.com/app/api-keys) or use `--backend cli`."
+                "Run `pip install google-antigravity` or use `--backend cli` mode."
             )
 
         system_rules = ""
@@ -520,11 +541,38 @@ class AntigravityBridgeRunner:
             """Returns the latest player, gear, professions, target, quests, and Lua error state from WoW Forever."""
             return f"Context: {context}\nErrors: {errors}"
 
-        config = LocalAgentConfig(
-            workspaces=[str(addons_root)],
-            system_instructions=system_rules,
-            tools=[scaffold_wow_forever_addon, get_live_wow_state],
-        )
+        custom_tools = [scaffold_wow_forever_addon, get_live_wow_state]
+
+        # 1) On-device LiteRT model (e.g. Gemma 4 26B — no API key needed)
+        if self.litert_model_path:
+            config = LiteRTAgentConfig(
+                model_path=self.litert_model_path,
+                workspaces=[str(addons_root)],
+                system_instructions=system_rules,
+                tools=custom_tools,
+            )
+        # 2) Local OpenAI-compatible server (Ollama / LM Studio — no API key needed)
+        elif self.local_openai_url:
+            config = LocalOpenAIAgentConfig(
+                model=self.local_openai_model,
+                base_url=self.local_openai_url,
+                workspaces=[str(addons_root)],
+                system_instructions=system_rules,
+                tools=custom_tools,
+            ).lightweight()
+        # 3) Hosted Gemini via Google Antigravity SDK (`LocalAgentConfig`)
+        else:
+            if not os.environ.get("GEMINI_API_KEY"):
+                return (
+                    "|cffEA4335[API Key Required]|r `GEMINI_API_KEY` is not set.\n"
+                    "Create a key at Google AI Studio (https://aistudio.google.com/app/api-keys), "
+                    "pass `--local-openai-url` / `--litert-model`, or use `--backend cli`."
+                )
+            config = LocalAgentConfig(
+                workspaces=[str(addons_root)],
+                system_instructions=system_rules,
+                tools=custom_tools,
+            )
 
         chunks: list[str] = []
         async with Agent(config=config) as agent:
