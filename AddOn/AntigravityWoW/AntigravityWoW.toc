@@ -1,0 +1,16 @@
+## Interface: 16001
+## Title: |cff4285F4Antigravity|r |cff34A853AI Guide & Studio|r
+## Notes: WoW Forever 전용 인게임 와우 질문(Q&A) 백과사전 + Antigravity 코딩 스튜디오 (/agy, /와우질문)
+## Author: Antigravity Studio
+## Version: 1.2.0
+## SavedVariables: AntigravityWoWDB
+## IconTexture: Interface\Icons\INV_Misc_EngGizmos_20
+
+Core.lua
+Inbox.lua
+Context.lua
+ErrorCatcher.lua
+Sandbox.lua
+UI.lua
+MinimapButton.lua
+Settings.lua

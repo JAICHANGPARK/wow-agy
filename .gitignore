@@ -1,0 +1,13 @@
+# Python / OS artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+.DS_Store
+
+# Secrets & local daemon runtime state
+.env
+bridge/.daemon_state.json
+AddOn/AntigravityWoW/.inbox_*.lua
