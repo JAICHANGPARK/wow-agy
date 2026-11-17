@@ -223,8 +223,10 @@ def run_interactive_auth_setup(repo_root: Path) -> int:
 
     if choice == "1":
         if not has_agy:
-            print("\n❌ `agy` CLI was not found on your PATH.")
-            print("Install Antigravity CLI from https://antigravity.google/docs or choose Option [2] (API Key).")
+            print("\n❌ `agy` CLI was not found on your PATH. Install it first with one command:")
+            print("  • macOS / Linux : curl -fsSL https://antigravity.google/cli/install.sh | bash")
+            print("  • Windows (PS)  : irm https://antigravity.google/cli/install.ps1 | iex")
+            print("  • Docs          : https://antigravity.google/docs")
             return 1
         print(f"\nLaunching `{agy_bin}` so you can complete Google sign-in (press Ctrl+D twice after signing in)...")
         subprocess.run([agy_bin], check=False)

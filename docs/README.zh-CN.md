@@ -61,7 +61,8 @@ python3 bridge/daemon.py --setup-auth
 python3 bridge/daemon.py --check-auth
 ```
 
-- **方式 1（`agy` CLI 谷歌账号登录，免 API Key）**：在终端运行一次 `agy`，通过浏览器登录 Google 账号即可自动复用会话。
+- **方式 1（安装 `agy` CLI 并登录谷歌账号，免 API Key）**：
+  - 若尚未安装 `agy` CLI，可一行命令安装（macOS/Linux: `curl -fsSL https://antigravity.google/cli/install.sh | bash` / Windows PS: `irm https://antigravity.google/cli/install.ps1 | iex`），随后在终端运行一次 `agy` 完成浏览器登录即可。
 - **方式 2（Google AI Studio API Key）**：在 https://aistudio.google.com/app/api-keys 获取密钥，通过 `--setup-auth` 自动写入本地 `.env` 文件（`0600` 权限且已加入 `.gitignore`）。
 - **方式 3（Google Cloud / Vertex AI ADC）**：运行 `gcloud auth application-default login` 并搭配 `--vertex --project <项目ID>`。
 - **方式 4（纯本地模型，免认证/零费用）**：使用 LiteRT Gemma 4 (`--litert-model`) 或本地 Ollama / LM Studio (`--local-openai-url`)。

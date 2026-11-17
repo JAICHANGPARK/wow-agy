@@ -64,8 +64,11 @@ python3 bridge/daemon.py --setup-auth
 python3 bridge/daemon.py --check-auth
 ```
 
-1. **방법 1 — `agy` CLI 구글 계정 로그인 (API 키 불필요, 가장 간편)**:
-   - 터미널에서 `agy` 를 최초 1회 실행해 브라우저에서 Google 계정으로 로그인하면 끝납니다.
+1. **방법 1 — `agy` CLI 설치 및 구글 계정 로그인 (API 키 불필요, 가장 간편)**:
+   - 아직 `agy` CLI가 없다면 터미널에서 한 줄로 설치합니다:
+     - **macOS / Linux**: `curl -fsSL https://antigravity.google/cli/install.sh | bash`
+     - **Windows (PowerShell)**: `irm https://antigravity.google/cli/install.ps1 | iex`
+   - 설치 후 터미널에 `agy` 를 최초 1회 입력해 브라우저에서 Google 계정으로 로그인하면 끝납니다.
 2. **방법 2 — Google AI Studio API 키 (`.env` 자동 로드 지원)**:
    - https://aistudio.google.com/app/api-keys 에서 키를 발급받아 `--setup-auth` 에서 붙여넣으면 `.env` 파일(소유자 전용 `0600` 권한, Git 업로드 제외)에 안전하게 저장되어 매번 `export` 할 필요가 없습니다.
 3. **방법 3 — Google Cloud / Gemini Enterprise (`Vertex AI` ADC)**:

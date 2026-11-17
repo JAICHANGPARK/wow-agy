@@ -62,7 +62,8 @@ python3 bridge/daemon.py --setup-auth
 python3 bridge/daemon.py --check-auth
 ```
 
-- **方式1（`agy` CLI Google ログイン）**: ターミナルで一度 `agy` を起動し、ブラウザでGoogleログインするだけで完了（APIキー不要）。
+- **方式1（`agy` CLI のインストール＆Google ログイン・APIキー不要）**:
+  - 未インストールの場合は1行で導入できます（macOS/Linux: `curl -fsSL https://antigravity.google/cli/install.sh | bash` / Windows PS: `irm https://antigravity.google/cli/install.ps1 | iex`）。その後ターミナルで一度 `agy` を起動しブラウザでログインするだけで完了します。
 - **方式2（Google AI Studio APIキー）**: https://aistudio.google.com/app/api-keys で取得し、`--setup-auth` で `.env`（権限 `0600`）に保存。
 - **方式3（Google Cloud / Vertex AI ADC）**: `gcloud auth application-default login` + `--vertex --project <ID>`。
 - **方式4（ローカルモデル：認証不要）**: LiteRT Gemma 4（`--litert-model`）または Ollama / LM Studio（`--local-openai-url`）。

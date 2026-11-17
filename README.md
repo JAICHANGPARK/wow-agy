@@ -46,7 +46,10 @@ Auto-detects all official Blizzard client locales (`GetLocale()`) and supports i
 
 1. **World of Warcraft: Forever** client (`Interface: 16001`)
 2. **Python 3.10+** (`macOS`, `Windows`, or `Linux`)
-3. **Google Antigravity CLI (`agy`)** authenticated — **OR** the **`google-antigravity` Python SDK** (supports Cloud Gemini, on-device LiteRT Gemma 4, or local Ollama / LM Studio)
+3. **Antigravity CLI (`agy`)** — **OR** **`google-antigravity` Python SDK**:
+   - Install `agy` CLI on macOS / Linux: `curl -fsSL https://antigravity.google/cli/install.sh | bash`
+   - Install `agy` CLI on Windows (PowerShell): `irm https://antigravity.google/cli/install.ps1 | iex`
+   - Or install Python SDK only: `pip install -r requirements.txt`
 
 ---
 
