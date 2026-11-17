@@ -4,7 +4,7 @@ Supports all 4 official Google Antigravity authentication paths:
 1. Antigravity CLI (`agy`) Google OAuth login (zero API key setup)
 2. Google Antigravity SDK + `GEMINI_API_KEY` (via environment variable or `.env` file)
 3. Google Antigravity SDK + Gemini Enterprise / Vertex AI (`vertex=True` via ADC or Express API key)
-4. On-device / Local Models (`LiteRTAgentConfig` or `LocalOpenAIAgentConfig` — no auth required)
+4. On-device / Local Models (`LiteRTAgentConfig` or `LocalOpenAIAgentConfig`, no auth required)
 """
 
 from __future__ import annotations
@@ -137,13 +137,13 @@ def diagnose_auth(
         return AuthStatus(
             ok=True,
             method="sdk-litert-local",
-            summary=f"On-device LiteRT model ({litert_model_path}) — No API key required",
+            summary=f"On-device LiteRT model ({litert_model_path}), no API key required",
         )
     if local_openai_url:
         return AuthStatus(
             ok=True,
             method="sdk-local-openai",
-            summary=f"Local OpenAI-compatible server ({local_openai_url}) — No API key required",
+            summary=f"Local OpenAI-compatible server ({local_openai_url}), no API key required",
         )
 
     if backend == "cli":
@@ -204,7 +204,7 @@ def run_interactive_auth_setup(repo_root: Path) -> int:
     has_agy = bool(agy_bin and Path(agy_bin).exists())
 
     print("=" * 68)
-    print(" 🔐 Antigravity WoW Forever — Authentication Setup Wizard")
+    print(" Antigravity WoW Forever: Authentication Setup")
     print("=" * 68)
     print(" Choose how you want to authenticate with Google Antigravity:\n")
     print(f"  [1] Antigravity CLI (`agy`) Google Account Sign-In {'(Installed!)' if has_agy else '(Requires agy CLI)'}")
@@ -213,7 +213,7 @@ def run_interactive_auth_setup(repo_root: Path) -> int:
     print("      -> Uses `google-antigravity` Python SDK. Get a key at: https://aistudio.google.com/app/api-keys")
     print("  [3] Google Cloud / Gemini Enterprise (Vertex AI ADC)")
     print("      -> Uses `gcloud auth application-default login` + GCP Project ID.")
-    print("  [4] Local Model (Ollama / LM Studio / LiteRT Gemma 4 — No Auth / Free)")
+    print("  [4] Local Model (Ollama / LM Studio / LiteRT Gemma 4, no auth)")
     print()
 
     choice = input("Select option [1-4] (or 'q' to cancel): ").strip().lower()

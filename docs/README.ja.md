@@ -1,93 +1,85 @@
-# wow-agy — AI ガイド & コードスタジオ (WoW Forever `Interface: 16001`)
+# wow-agy
 
-🌐 **言語 (Languages)**: [English](../README.md) | [한국어](README.ko.md) | **日本語** | [简体中文](README.zh-CN.md)
+[English](../README.md) | [한국어](README.ko.md) | 日本語 | [简体中文](README.zh-CN.md)
 
-**World of Warcraft: Forever**（`## Interface: 16001`）のゲーム内からAlt+Tab不要で **Google Antigravity（`google-antigravity` SDK / `agy` CLI）** を呼び出し、**クエスト・ボス攻略・装備比較の質問（Q&A）** や **Luaアドオン開発・ライブ実行・エラーデバッグ** ができるオールインワンアドオン＆ローカルブリッジです。
+`wow-agy` (`WoWAGY`) は、**World of Warcraft: Forever** (`Interface: 16001`) クライアントとローカルの Google Antigravity (`agy` CLI または `google-antigravity` Python SDK) を接続するゲーム内アドオンおよびブリッジツールです。
 
----
+ゲーム画面から離れずにクエスト手順、ボスのギミック、ドロップ装備の比較などを質問できるほか、Lua コードの即時実行や他アドオンのエラー解析、`Interface/AddOns/` 内のファイル編集を行えます。
 
-## Blizzard 公式 UI アドオン開発ポリシーへの準拠
+## 仕組み
 
-本プロジェクトは **Blizzard Entertainment の公式 UI アドオン開発ポリシー** および利用規約（ToU）を厳格に遵守して設計されています：
+WoW の Lua 5.1 サンドボックスからは外部通信やプロセス起動ができないため、公式 API の範囲内で以下の 2 通りの方法でローカルデーモンと連携します。
 
-- **完全無料・オープンソース（[MIT License](../LICENSE)）**: 有料課金、広告表示、寄付の勧誘は一切ありません。
-- **100% 平文の Lua/XML コード**: 難読化・暗号化や外部バイナリ（`.dll`/`.so`）は一切使用していません。
-- **画面ピクセルスキャン・メモリ読み取り・入力自動化の排除**: 画面キャプチャによるピクセル解析や音声ファイルを用いたサンドボックス回避ハックは行わず、公式の **`SavedVariables` 同期** と WeakAuras 等と同じ **ユーザー操作による `EditBox` コピー＆ペースト（`Ctrl+C`/`V`）** のみを使用します。
-- **戦闘自動化（Bot行為）の禁止**: 自動移動・ターゲット・スキル発動は行わず、`InCombatLockdown()` および `C_Secrets` 制限を遵守します。
-- **安全なマクロ管理**: `/run` を含むマクロには注意喚起を表示し、`/agy undo` で直前のマクロ変更をいつでも元に戻せます。
+1. **クリップボードブリッジ (`/reload` 不要)**: ゲーム内の `EditBox` からリクエスト文字列をコピー (`Ctrl+C` / `Cmd+C`) すると、ローカルデーモンが Antigravity を実行して回答をクリップボードへ戻します。ゲーム側で貼り付け (`Ctrl+V` / `Cmd+V`) するだけで即座に表示・実行できます。
+2. **`SavedVariables` 同期**: `/reload` 時に `WTF/Account/.../SavedVariables/WoWAGY.lua` へリクエストを書き出し、デーモンがアドオンファイルを編集して `AddOn/WoWAGY/Inbox.lua` に結果を保存します。
 
----
+画面ピクセルの読み取り、メモリ参照、キー入力の自動送信、戦闘の自動化は一切行いません。
 
 ## 主な機能
 
-1. **ゲーム内 WoW AI 攻略ガイド（Q&A モード）**
-   - チャット欄で `/wowask <質問>` を入力するだけでいつでも質問可能
-   - キャラクター情報、現在地座標、**装備中のアイテム（1〜18スロット）**、**専門スキル熟練度**、**現在のターゲット（名前・NPC ID）**、**進行中クエストの目標**を自動添付
-   - **公式 `C_TooltipInfo` によるツールチップ性能添付**: アイテムやスキルを **`Shift+クリック` またはドラッグ＆ドロップ** すると、実際のステータス文字列を抽出して正確な装備比較を実行
-   - **ワンクリック・マップピン（`📍 マップピン`）＆パーティ共有**: AI回答の座標を標準マップピン（`UiMapPoint`）と矢印で即座に表示
+- **ゲーム状態を踏まえた Q&A**: キャラクター情報、現在座標、装備中アイテム (1〜18 スロット)、専門スキル、現在のターゲット (名前・NPC ID)、進行中クエスト目標を任意で添付できます。
+- **ツールチップ情報の取得**: アイテムやスキルを `Shift+クリック` またはドラッグ＆ドロップすると、`C_TooltipInfo.GetHyperlink` でステータス文字列を取得して添付します。
+- **マップピンとチャット共有**: 回答内の座標を標準マップピン (`UiMapPoint` + `C_SuperTrack`) として設置したり、パーティ等に 3 行以内の要約を共有したりできます。
+- **Live Lua エディタ**: `/reload` なしで Lua コードを実行 (`loadstring`) し、`print()` 出力と実行時間を確認できます。
+- **Lua エラーデバッガ**: `seterrorhandler` チェーンで捕捉したエラーのスタックトレースをそのまま診断・修正依頼に回せます。
+- **12 言語対応**: デフォルトは英語 (`enUS`)。公式クライアントロケールの自動検出に加え、`/agy lang jaJP` で日本語 UI と日本語回答へ切り替えられます（英語クライアントで日本語を表示する場合は NihongoPlus 等の日本語フォントアドオンの併用を推奨します）。
 
-2. **4タブ構成のゲーム内 Lua コーディング IDE**
-   - **タブ1（質問 & 開発）** / **タブ2（Live Lua エディタ：`Ctrl+Enter` 即時実行）** / **タブ3（Luaエラーデバッガ）** / **タブ4（スニペット & 公式 `/api`・`/fstack` ツール）**
+## 必要環境
 
-3. **12言語マルチリンガル対応（デフォルト英語 `enUS` + 日本語 `jaJP` 対応）**
-   - 画面右上の **`[🌐 Auto (...)]`** ボタン、または **`/agy lang jaJP`** でリロードなしに日本語UI＆日本語AI回答へ切り替えられます。
-   - *※ヒント：英語クライアント（`enUS`）で日本語を表示する場合、日本語フォントアドオン（NihongoPlus等）の併用を推奨します。*
+- World of Warcraft: Forever (`Interface: 16001`)
+- [`uv`](https://docs.astral.sh/uv/) (推奨。Python 3.15 と依存パッケージを自動管理) または Python 3.13 以上
+- Antigravity CLI (`agy`) または `google-antigravity` Python パッケージ
 
----
+## インストール
 
-## インストールと起動方法
-
-### 1. アドオンのインストール
-
-**macOS / Linux:**
 ```bash
+git clone https://github.com/JAICHANGPARK/wow-agy.git
+cd wow-agy
+
+# macOS / Linux
 chmod +x ./scripts/install.sh
 ./scripts/install.sh "/Applications/World of Warcraft/_forever_"
 ```
 
-**Windows (PowerShell):**
+Windows (PowerShell):
+
 ```powershell
 .\scripts\install.ps1 "C:\Program Files (x86)\World of Warcraft\_forever_"
 ```
 
-### 2. Antigravity 認証設定（初回のみ・4つの方式に対応）
+## 認証設定とブリッジの起動
 
-対話型の認証セットアップウィザードで簡単に設定・確認できます：
+初回は以下のコマンドで認証を設定・確認できます。
 
 ```bash
-# 対話型セットアップウィザード（uv 推奨 — 仮想環境＆SDKを自動構築）
 uv run wow-agy-daemon --setup-auth
-
-# 現在の認証ステータス確認
 uv run wow-agy-daemon --check-auth
 ```
 
-- **方式1（`agy` CLI のインストール＆Google ログイン・APIキー不要）**:
-  - 未インストールの場合は1行で導入できます（macOS/Linux: `curl -fsSL https://antigravity.google/cli/install.sh | bash` / Windows PS: `irm https://antigravity.google/cli/install.ps1 | iex`）。その後ターミナルで一度 `agy` を起動しブラウザでログインするだけで完了します。
-- **方式2（Google AI Studio APIキー）**: https://aistudio.google.com/app/api-keys で取得し、`--setup-auth` で `.env`（権限 `0600`）に保存。
-- **方式3（Google Cloud / Vertex AI ADC）**: `gcloud auth application-default login` + `--vertex --project <ID>`。
-- **方式4（ローカルモデル：認証不要）**: LiteRT Gemma 4（`--litert-model`）または Ollama / LM Studio（`--local-openai-url`）。
+- `agy` CLI を使う場合: `curl -fsSL https://antigravity.google/cli/install.sh | bash` (Windows PS: `irm https://antigravity.google/cli/install.ps1 | iex`) で導入後、`agy` を一度起動してブラウザで Google ログインします。
+- API キーを使う場合: https://aistudio.google.com/app/api-keys で取得し、`--setup-auth` で `.env` (`0600` 権限) に保存します。
+- ローカルモデルを使う場合: LiteRT (`--litert-model`) や Ollama / LM Studio (`--local-openai-url`) なら認証不要で動作します。
 
-### 3. ローカルブリッジデーモンの起動（`uv` + Python 3.15 ネイティブ対応）
+ブリッジデーモンの起動:
 
 ```bash
-# A) 推奨：uv で自動環境同期＆起動（pip 不要！）
 uv run wow-agy-daemon --wow-dir "/Applications/World of Warcraft/_forever_"
-
-# B) オンデバイス LiteRT / ローカル Ollama モード（APIキー不要）
-uv run --extra litert wow-agy-daemon --backend sdk --litert-model ~/.litert-lm/models/gemma4-26b/model.litertlm
-uv run wow-agy-daemon --backend sdk --local-openai-url http://localhost:11434/v1 --local-model gemma4:26b
-
-# C) 標準 python3 直接実行（agy CLI 利用時・追加パッケージ不要）
-python3 bridge/daemon.py --wow-dir "/Applications/World of Warcraft/_forever_"
 ```
 
----
+## 主なスラッシュコマンド
 
-## ゲーム内での使い方
+| コマンド | 説明 |
+| :--- | :--- |
+| `/agy`, `/wow-agy` | メインウィンドウの開閉 |
+| `/wowask <質問>`, `/wowq <質問>` | WoW 攻略・クエスト・装備の質問を登録 |
+| `/agy lang <コード\|auto>` | 言語の切り替え (`jaJP`, `enUS`, `koKR`, `zhCN` など) |
+| `/agy lua` / `/agy errors` | Live Lua エディタ / エラーデバッガを開く |
+| `/agy undo` | 直前に作成・更新したマクロを元に戻す |
+| `/agy about` | バージョン・作者・GitHub URL を表示 |
+| `/agy sync` | 非戦闘時に `/reload` を実行 |
 
-1. **リロード不要の即時質問（クリップボードブリッジ）**:
-   - `/agy` を開き、`/agy lang jaJP` で日本語に設定 → 質問を入力して **`Ctrl+Enter`** → **`Ctrl+C` (`Cmd+C`)** でコピー
-   - デスクトップ通知が届いたら **`[回答/コードを貼り付け]`** → **`Ctrl+V` (`Cmd+V`)** → **`[チャットに回答を表示]`** をクリック！
-2. **アドオンファイルの生成・修正（`SavedVariables` 同期）**:
-   - 指示を入力して **`[送信 / 同期 (/reload)]`**（`Alt+Enter`）を実行し、完了通知後に再度 `/reload` すると反映されます。
+## 作者・ライセンス
+
+- 作者: JAICHANGPARK (Dreamwalker)
+- リポジトリ: https://github.com/JAICHANGPARK/wow-agy
+- ライセンス: [MIT](../LICENSE)

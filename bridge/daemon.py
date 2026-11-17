@@ -244,7 +244,7 @@ class CompanionDaemon:
                     if attempt == 0:
                         time.sleep(0.15)
                         continue
-                    print(f"[WARN] SavedVariables write still in progress or malformed ({sv_path.name}): {exc} — will retry on next poll.")
+                    print(f"[WARN] SavedVariables write still in progress or malformed ({sv_path.name}): {exc}. Retrying on next poll.")
                 except OSError as exc:
                     print(f"[WARN] Could not read SavedVariables ({sv_path.name}): {exc}")
                     break
@@ -373,7 +373,7 @@ class CompanionDaemon:
             print(f"   -> Hint        : {auth_info.hint}")
         print(f" • AddOns 폴더    : {self.addons_dir}")
         print(f" • Inbox 경로     : {self.inbox_path}")
-        print(f" • WoW 경로       : {self.wow_flavor_dir or '(수동 지정 안 됨 — 로컬 워크스페이스 모드)'}")
+        print(f" • WoW 경로       : {self.wow_flavor_dir or '(수동 지정 안 됨, 로컬 워크스페이스 모드)'}")
         print(f" • 클립보드 브릿지: {'활성화 (무-리로드 즉시 실행 지원)' if self.enable_clipboard else '비활성화'}")
         print("-" * 68)
         print(" 대기 중... (종료하려면 Ctrl+C | 인증 재설정: python3 bridge/daemon.py --setup-auth)")

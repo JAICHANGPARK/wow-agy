@@ -5,7 +5,7 @@ local addonName, ns = ...
 -- Multilingual Localization Engine for World of Warcraft: Forever (16001)
 -- Default Fallback: English (enUS / enGB)
 -- Supported Official WoW Locales: enUS, koKR, zhCN, zhTW, deDE, frFR, esES, esMX, ptBR, ruRU, itIT
--- Additional Community Locale: jaJP (Japanese — selectable via UI / `/agy lang jaJP`)
+-- Additional Community Locale: jaJP (Japanese, selectable via UI / `/agy lang jaJP`)
 -- ============================================================================
 
 ns.LOCALE_ORDER = {
@@ -77,7 +77,7 @@ LOCALES.enUS = {
     BTN_COPY_CLIP   = "Copy Request (No-Reload)",
     BTN_CLEAR_CHAT  = "Clear",
 
-    EDITOR_HEADER = "|cff4285F4Live Lua Studio|r — Test WoW Forever (16001) Lua APIs instantly without /reload. (Ctrl+Enter to Run)",
+    EDITOR_HEADER = "|cff4285F4Live Lua Studio|r: Test WoW Forever (16001) Lua APIs instantly without /reload. (Ctrl+Enter to Run)",
     BTN_RUN_LUA = "▶ Run Lua Now",
     BTN_SAVE_SNIPPET = "Save Snippet",
     BTN_RUN_MACRO = "Create /run Macro",
@@ -104,9 +104,9 @@ LOCALES.enUS = {
     BTN_EXEC_SNIPPET = "▶ Run",
     BTN_DEL_SNIPPET = "Del",
 
-    CLIP_COPY_TITLE = "|cff4285F4Clipboard Bridge — Copy Request Packet (Zero-Reload)|r",
-    CLIP_COPY_HINT  = "The packet below is highlighted. Press |cffFBBC05Ctrl+C (Cmd+C on Mac)|r — the background daemon will process it and copy the reply back!",
-    CLIP_PASTE_TITLE = "|cff34A853Clipboard Bridge — Paste Antigravity Reply / Code (Zero-Reload)|r",
+    CLIP_COPY_TITLE = "|cff4285F4Clipboard Bridge: Copy Request Packet (Zero-Reload)|r",
+    CLIP_COPY_HINT  = "The packet below is highlighted. Press |cffFBBC05Ctrl+C (Cmd+C on Mac)|r; the background daemon will process it and copy the reply back.",
+    CLIP_PASTE_TITLE = "|cff34A853Clipboard Bridge: Paste Antigravity Reply / Code (Zero-Reload)|r",
     CLIP_PASTE_HINT  = "Press |cffFBBC05Ctrl+V (Cmd+V)|r, then click [Show Reply in Chat] for Q&A answers or [▶ Run Lua Code] for scripts.",
     BTN_SHOW_IN_CHAT = "Show Reply in Chat (No-Reload)",
     BTN_CLOSE = "Close",
@@ -142,7 +142,7 @@ LOCALES.enUS = {
     ERR_OUTPUT_TRUNC   = "... (Output truncated at %d lines to prevent client freeze)",
     ERR_NO_WAYPOINT    = "No map coordinates attached to the latest AI reply.",
     ERR_BAD_COORDS     = "Coordinates (%.1f, %.1f) are outside the valid 0-100 map range.",
-    ERR_WAYPOINT_UNSUP = "📍 Coordinates: |cffFFD100%s|r — (%.1f, %.1f) [User pins unsupported in this instance/map]",
+    ERR_WAYPOINT_UNSUP = "Coordinates: |cffFFD100%s|r (%.1f, %.1f) [User pins unsupported in this instance/map]",
     MSG_WAYPOINT_SET   = "📍 Map Pin set: |cffFFD100%s|r (%.1f, %.1f) %s",
     ERR_NO_CODE        = "No Lua code snippet is attached to the latest AI reply.",
     ERR_NO_MACRO       = "No macro body is attached to the latest AI reply.",
@@ -204,7 +204,7 @@ LOCALES.koKR = {
     BTN_COPY_CLIP   = "클립보드 질문/요청 복사 (무-리로드)",
     BTN_CLEAR_CHAT  = "비우기",
 
-    EDITOR_HEADER = "|cff4285F4Live Lua Studio|r — WoW Forever (16001) API를 리로드 없이 실시간 테스트하세요. (Ctrl+Enter 실행)",
+    EDITOR_HEADER = "|cff4285F4Live Lua Studio|r: WoW Forever (16001) API를 리로드 없이 실시간 테스트하세요. (Ctrl+Enter 실행)",
     BTN_RUN_LUA = "▶ 즉시 실행 (Run Lua)",
     BTN_SAVE_SNIPPET = "스니펫 저장",
     BTN_RUN_MACRO = "/run 매크로 생성",
@@ -231,9 +231,9 @@ LOCALES.koKR = {
     BTN_EXEC_SNIPPET = "▶ 실행",
     BTN_DEL_SNIPPET = "삭제",
 
-    CLIP_COPY_TITLE = "|cff4285F4클립보드 브릿지 — 질문/코딩 패킷 복사 (무-리로드)|r",
+    CLIP_COPY_TITLE = "|cff4285F4클립보드 브릿지: 질문/코딩 패킷 복사 (무-리로드)|r",
     CLIP_COPY_HINT  = "아래 패킷이 전체 선택되었습니다. |cffFBBC05Ctrl+C (Mac은 Cmd+C)|r 를 누르면 백그라운드 데몬이 답변을 클립보드로 즉시 돌려줍니다!",
-    CLIP_PASTE_TITLE = "|cff34A853클립보드 브릿지 — Antigravity 답변/코드 붙여넣기 (무-리로드)|r",
+    CLIP_PASTE_TITLE = "|cff34A853클립보드 브릿지: Antigravity 답변/코드 붙여넣기 (무-리로드)|r",
     CLIP_PASTE_HINT  = "|cffFBBC05Ctrl+V (Cmd+V)|r 로 붙여넣은 뒤, 질문 답변은 [대화창에 답변 표시]를, 코드는 [▶ 코드 실행]을 누르세요.",
     BTN_SHOW_IN_CHAT = "대화창에 답변 표시 (무-리로드)",
     BTN_CLOSE = "닫기",
@@ -269,7 +269,7 @@ LOCALES.koKR = {
     ERR_OUTPUT_TRUNC   = "... (클라이언트 멈춤 방지를 위해 출력이 %d줄에서 생략되었습니다)",
     ERR_NO_WAYPOINT    = "최근 AI 답변에 포함된 지도 좌표가 없습니다.",
     ERR_BAD_COORDS     = "좌표(%.1f, %.1f)가 유효 범위(0~100)를 벗어났습니다.",
-    ERR_WAYPOINT_UNSUP = "📍 안내 좌표: |cffFFD100%s|r — (%.1f, %.1f) [현재 던전/지역은 순정 핀 미지원]",
+    ERR_WAYPOINT_UNSUP = "안내 좌표: |cffFFD100%s|r (%.1f, %.1f) [현재 던전/지역은 순정 핀 미지원]",
     MSG_WAYPOINT_SET   = "📍 지도 핀 설정 완료: |cffFFD100%s|r (%.1f, %.1f) %s",
     ERR_NO_CODE        = "최근 AI 답변에 첨부된 Lua 코드 스니펫이 없습니다.",
     ERR_NO_MACRO       = "최근 AI 답변에 첨부된 매크로 본문이 없습니다.",
@@ -296,7 +296,7 @@ LOCALES.koKR = {
     PROMPT_FIX_ERR          = "인게임에서 [%s] 애드온 관련 Lua 에러가 발생했어. WoW Forever (Interface: 16001) API 규격에 맞게 원인을 찾고 수정해줘:\n에러: %s\n스택:\n%s",
 }
 
--- 3. Japanese (jaJP — selectable manually via 🌐 button or `/agy lang jaJP`; CJK font addon recommended on enUS client)
+-- 3. Japanese (jaJP: selectable manually via UI button or `/agy lang jaJP`; CJK font addon recommended on enUS client)
 LOCALES.jaJP = {
     APP_SUBTITLE = "(WoW Forever)",
     TAB_1 = "1. 質問(Q&A) & 開発",

@@ -1,4 +1,4 @@
-# AGENTS.md — WoW Forever (`Interface: 16001`) Addon Coding Rules for Antigravity
+# AGENTS.md: WoW Forever (`Interface: 16001`) Addon Coding Rules for Antigravity
 
 You are **Antigravity**, an expert World of Warcraft UI Add-On developer specializing in **World of Warcraft: Forever** (`Interface: 16001`). Follow every rule below strictly whenever creating, editing, or debugging `.toc`, `.lua`, or `.xml` files in `Interface/AddOns/`.
 
@@ -10,7 +10,7 @@ You are **Antigravity**, an expert World of Warcraft UI Add-On developer special
    - Always set `## Interface: 16001` at the top of `.toc` files for WoW Forever.
 2. **Modern Engine under a `16001` Build Number**:
    - Even though `select(4, GetBuildInfo())` returns `16001`, WoW Forever runs on the **modern Retail/Midnight UI engine** (`C_*` namespaces, `BackdropTemplate`, `EditMode`, `Settings.RegisterCanvasLayoutCategory`), **NOT** the legacy 1.12 / 1.15 Classic engine.
-   - **NEVER** gate modern `C_*` APIs behind `if tocVersion >= 100000 then` — that check evaluates to `false` on `16001` and breaks your addon! Instead, check feature availability directly (e.g., `if C_Spell and C_Spell.GetSpellInfo then`).
+   - **NEVER** gate modern `C_*` APIs behind `if tocVersion >= 100000 then`. That check evaluates to `false` on `16001` and breaks your addon. Check feature availability directly instead (e.g., `if C_Spell and C_Spell.GetSpellInfo then`).
 
 ---
 
@@ -53,7 +53,7 @@ The following Classic/legacy globals are **removed** in WoW Forever (`16001`). A
    - Enemy health values and certain combat log payloads are protected as Secret Values (`C_Secrets`) during restricted encounters. Do not build combat-decision automation, rotation bots, or hidden aura solvers.
 5. **Lua 5.1 Environment**:
    - WoW uses sandboxed **Lua 5.1**:
-     - No `goto` keyword, no bitwise operators (`&`, `|`, `~` — use `bit.band`, `bit.bor`, `bit.bxor`), no `io.*` or `os.execute` (`time()` and `date()` are global functions, not `os.time()`).
+     - No `goto` keyword, no bitwise operators (`&`, `|`, `~`; use `bit.band`, `bit.bor`, `bit.bxor`), no `io.*` or `os.execute` (`time()` and `date()` are global functions, not `os.time()`).
      - Each `.lua` file receives `local addonName, ns = ...` at file scope. Share private state through `ns` instead of polluting `_G`.
 
 ---

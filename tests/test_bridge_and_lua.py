@@ -274,6 +274,21 @@ class TestAddonAndBridge(unittest.TestCase):
                 resolved = (readme.parent / rel_target).resolve()
                 self.assertTrue(resolved.exists(), f"Broken link {rel_target!r} in {readme.name}")
 
+        # Enforce zero em-dashes (U+2014) and en-dashes (U+2013) across all repository source & doc files
+        for p in sorted(REPO_ROOT.rglob("*")):
+            if (
+                not p.is_file()
+                or ".git" in p.parts
+                or ".venv" in p.parts
+                or "__pycache__" in p.parts
+                or p.name == "uv.lock"
+                or p.suffix == ".pyc"
+            ):
+                continue
+            content = p.read_text(encoding="utf-8", errors="ignore")
+            self.assertNotIn("\u2014", content, f"Em-dash found in {p.relative_to(REPO_ROOT)}")
+            self.assertNotIn("\u2013", content, f"En-dash found in {p.relative_to(REPO_ROOT)}")
+
     def test_auth_dotenv_and_diagnostics(self) -> None:
         import os
 

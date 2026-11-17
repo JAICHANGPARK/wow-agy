@@ -1,180 +1,149 @@
-# wow-agy — AI Guide & Code Studio for WoW Forever (`Interface: 16001`)
+# wow-agy
 
-🌐 **Languages**: **English** | [한국어](docs/README.ko.md) | [日本語](docs/README.ja.md) | [简体中文](docs/README.zh-CN.md)
+English | [한국어](docs/README.ko.md) | [日本語](docs/README.ja.md) | [简体中文](docs/README.zh-CN.md)
 
-An all-in-one **in-game World of Warcraft Q&A Strategy Assistant** and **Google Antigravity (`google-antigravity` SDK / `agy` CLI) Lua Vibe-Coding Studio** built specifically for **World of Warcraft: Forever** (`## Interface: 16001`).
+`wow-agy` (`WoWAGY`) is an in-game World of Warcraft addon and local companion bridge that connects **World of Warcraft: Forever** (`Interface: 16001`) to Google Antigravity (`agy` CLI or the `google-antigravity` Python SDK).
 
-Ask gameplay questions (quest routes, boss mechanics, item drops, class builds), attach live item/spell tooltips via Shift+Click, vibe-code or debug `.lua` addons, and test live Lua snippets right inside WoW — without alt-tabbing.
+You can use it inside the game to ask gameplay questions (quest routes, boss mechanics, item drops, class builds), run live Lua snippets without reloading, inspect runtime Lua errors from any addon, and edit files in `Interface/AddOns/`.
 
----
+## How It Works
 
-## Blizzard Official UI Add-On Policy & ToU Compliance
+World of Warcraft runs addons in a sandboxed Lua 5.1 environment with no network or process access. `wow-agy` stays within documented Blizzard APIs and communicates with a local Python process in two ways:
 
-`wow-agy` (`WoWAGY`) is engineered from the ground up to strictly comply with **Blizzard Entertainment's UI Add-On Development Policy** and **Terms of Use**:
+1. **Clipboard bridge (no `/reload` needed)**: Copy a compact request packet from an in-game `EditBox` (`Ctrl+C` / `Cmd+C`). The local daemon runs Antigravity and puts the formatted answer, Lua snippet, macro, or map coordinates onto your clipboard so you can paste (`Ctrl+V` / `Cmd+V`) straight back into the addon window.
+2. **`SavedVariables` sync**: Flush queued requests to `WTF/Account/.../SavedVariables/WoWAGY.lua` on `/reload`. The daemon edits addon files in `Interface/AddOns/` and writes replies to `AddOn/WoWAGY/Inbox.lua` for the next reload.
 
-- **100% Free & Open Source ([MIT License](LICENSE))**: No paywalls, subscriptions, premium tiers, in-game advertisements, or donation solicitations.
-- **100% Visible Plain-Text Lua/XML**: Zero obfuscated code, encrypted payloads, or external `.dll`/`.so` binaries.
-- **Zero Memory Reading, Pixel-Scanning, or Input Injection**: Unlike screen-scraping or audio/slot sandbox-circumvention hacks, this project uses **only** Blizzard's standard `SavedVariables` file persistence and user-initiated WeakAuras/SimC-style `EditBox` Copy/Paste (`Ctrl+C` / `Ctrl+V`).
-- **Zero Combat Automation / Botting**: Never automates movement, targeting, or spell rotation decisions. Protected UI & macro operations strictly respect `InCombatLockdown()` and WoW Forever's `C_Secrets` combat restrictions.
-- **Safe Macro Management**: Displays a security notice if a generated macro includes `/run` or `/script`, backs up overwritten macros automatically, and supports 1-command rollback via `/agy undo`.
+It does not read game memory, scan screen pixels, inject synthetic input, or automate combat actions.
 
----
+## Features
 
-## Key Features
+- **Context-aware WoW Q&A**: Optionally attaches character info, zone coordinates, equipped items (slots 1 to 18), profession ranks, current target (name and NPC ID), and active quest objectives.
+- **Item and spell tooltip inspection**: `Shift+Click` or drag items and spells into the prompt box to attach their stats and descriptions via `C_TooltipInfo.GetHyperlink`.
+- **Map pins and chat summary**: Set native map waypoints (`UiMapPoint` + `C_SuperTrack`) from coordinates in answers, or share a short 3-line summary to Party, Raid, or Guild chat.
+- **Live Lua editor**: Write and run Lua 5.1 code in-game (`loadstring`) with captured `print()` output and execution timing.
+- **Lua error debugger**: Chains `seterrorhandler` to record stack traces from other addons so you can send them to Antigravity for diagnosis.
+- **Safe macro helper**: Creates or updates macros outside combat, warns if `/run` or `/script` is present, and supports `/agy undo` to restore the previous macro state.
+- **12 UI languages**: Defaults to English (`enUS`), auto-detects all official WoW client locales (`GetLocale()`), and includes manual switching for Japanese (`jaJP`) and other languages via `/agy lang <code>`.
 
-### 1. In-Game WoW AI Strategy & Q&A Assistant
-- **Quick Slash Commands**: Type `/wowask <question>` (or `/wowq`, `/와우질문`) anytime in chat.
-- **Rich Live Context**: Automatically attaches character level/class/race, map coordinates, **equipped gear (slots 1–18)**, **professions & skill ranks**, **current target info (name, classification, NPC ID)**, and **active quest objectives**.
-- **Official `C_TooltipInfo` Stat Attachment**: `Shift+Click` or **Drag & Drop** any item or spell into the prompt box — its full in-game tooltip stats and effects are extracted via Blizzard's official `C_TooltipInfo.GetHyperlink` API for accurate gear comparisons.
-- **1-Click Map Waypoint (`📍 Map Pin`) & Party Share**: Pin coordinates from AI answers directly onto the native WoW map with SuperTrack navigation arrows (`UiMapPoint` + `C_SuperTrack`), or share a 3-line summary to Party/Raid/Guild chat (with anti-spam cooldown).
+## Requirements
 
-### 2. In-Game Antigravity Lua Coding IDE (4 Tabs)
-- **Tab 1 — Q&A & Coding Terminal**: Chat with Antigravity, run attached Lua snippets in 1 click, generate macros, or sync file edits in `Interface/AddOns/`.
-- **Tab 2 — Live Lua Studio**: Write and execute WoW Forever (`16001`) Lua code immediately via `loadstring` (`Ctrl+Enter`) with captured `print()` output and execution timing (`ms`) — no `/reload` required.
-- **Tab 3 — Lua Error Debugger**: Non-intrusively chains `seterrorhandler` to record runtime Lua stack traces from any addon, with a 1-click **Ask Antigravity to Fix** button.
-- **Tab 4 — Snippets & Official Blizzard Tools**: Manage saved Lua snippets and launch `/api`, `/fstack`, `/etrace`, and `/reload`.
+- World of Warcraft: Forever (`Interface: 16001`)
+- [`uv`](https://docs.astral.sh/uv/) (recommended, manages Python 3.15 and dependencies automatically) or Python 3.13+
+- Either the Antigravity CLI (`agy`) or the `google-antigravity` Python package
 
-### 3. Global 12-Language Support (Default Fallback: English `enUS`)
-Auto-detects all official Blizzard client locales (`GetLocale()`) and supports instant zero-reload switching via the **`[🌐 Auto (...)]`** header button or `/agy lang <code>`:
-- **Americas / Global**: `enUS` / `enGB` (Default), `esMX`, `ptBR`
-- **Asia**: `koKR` (Korean), `jaJP` (Japanese — manual switch), `zhCN` (Simplified Chinese), `zhTW` (Traditional Chinese)
-- **Europe**: `deDE`, `frFR`, `esES`, `ruRU`, `itIT`
+Install `uv` if needed:
 
----
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-## Prerequisites
-
-1. **World of Warcraft: Forever** client (`Interface: 16001`)
-2. **[`uv`](https://docs.astral.sh/uv/)** *(Recommended — manages **Python 3.15** & `google-antigravity` automatically)* or **Python 3.13+ (3.15 recommended)**:
-   - Install `uv` (macOS / Linux): `curl -LsSf https://astral.sh/uv/install.sh | sh`
-   - Install `uv` (Windows PS): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
-3. **Antigravity CLI (`agy`)** — **OR** **`google-antigravity` Python SDK**:
-   - Install `agy` CLI on macOS / Linux: `curl -fsSL https://antigravity.google/cli/install.sh | bash`
-   - Install `agy` CLI on Windows (PowerShell): `irm https://antigravity.google/cli/install.ps1 | iex`
-   - Or sync Python SDK via `uv`: `uv sync` *(fallback: `pip install -r requirements.txt`)*
-
----
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
 
 ## Installation
 
-### 1. Clone the Repository
+Clone the repository and link (or copy) the addon into your WoW Forever `Interface/AddOns` directory:
+
 ```bash
 git clone https://github.com/JAICHANGPARK/wow-agy.git
 cd wow-agy
-```
 
-### 2. Install the Addon into WoW Forever
-
-**macOS / Linux:**
-```bash
+# macOS / Linux (creates a symlink to AddOn/WoWAGY)
 chmod +x ./scripts/install.sh
 ./scripts/install.sh "/Applications/World of Warcraft/_forever_"
 ```
-*(Creates a symlink to `AddOn/WoWAGY` and copies `AGENTS.md` into `Interface/AddOns/`.)*
 
-**Windows (PowerShell):**
+On Windows (PowerShell):
+
 ```powershell
 .\scripts\install.ps1 "C:\Program Files (x86)\World of Warcraft\_forever_"
 ```
 
----
+## Authentication
 
-## Authentication Setup (4 Official Options)
-
-Run the built-in interactive authentication wizard anytime, or verify your current status:
+Run the setup helper to configure authentication, or check your current setup:
 
 ```bash
-# Guided interactive setup (launches `agy` login or saves GEMINI_API_KEY to a 0600 `.env` file)
 uv run wow-agy-daemon --setup-auth
-
-# Verify current authentication status
 uv run wow-agy-daemon --check-auth
 ```
 
-1. **Option 1 — Antigravity CLI (`agy`) Google Sign-In (No API Key Needed)**:
-   - Run `agy` once in your terminal and complete the browser Google OAuth sign-in. The bridge automatically reuses your authenticated `agy` CLI session.
-2. **Option 2 — Google AI Studio API Key (`.env` or Environment Variable)**:
-   - Create an API key at https://aistudio.google.com/app/api-keys and save it via `python3 bridge/daemon.py --setup-auth` (writes to git-ignored `.env` with `0600` permissions) or `export GEMINI_API_KEY="your-key"`.
-3. **Option 3 — Google Cloud / Gemini Enterprise (`Vertex AI` ADC)**:
-   - Run `gcloud auth application-default login`, then pass `--vertex --project <GCP_PROJECT_ID>`.
-4. **Option 4 — 100% Local On-Device Models (Zero Auth / Zero Cloud Cost)**:
-   - Use LiteRT Gemma 4 (`--litert-model`) or local Ollama / LM Studio (`--local-openai-url`) with no account or API key required.
+Supported authentication options:
 
----
+1. **`agy` CLI login (no API key)**: Install `agy` (`curl -fsSL https://antigravity.google/cli/install.sh | bash` on macOS/Linux, or `irm https://antigravity.google/cli/install.ps1 | iex` on Windows PowerShell), then run `agy` once to sign in with Google in your browser.
+2. **Google AI Studio API key**: Get a key from https://aistudio.google.com/app/api-keys and save it via `--setup-auth` (stored in a git-ignored `.env` file with `0600` permissions) or set `GEMINI_API_KEY`.
+3. **Vertex AI / Gemini Enterprise**: Run `gcloud auth application-default login` and pass `--vertex --project <GCP_PROJECT_ID>`.
+4. **Local models (no account or key)**: Run on-device LiteRT checkpoints (`--litert-model`) or connect to a local Ollama / LM Studio server (`--local-openai-url`).
 
-## Running the Companion Bridge
+## Running the Bridge
 
-Because WoW's Lua sandbox blocks direct network or subprocess calls, run the lightweight local bridge alongside the game:
+Start the companion process before or while playing:
 
-### Option A: Recommended `uv` Workflow (Auto-installs Python & `google-antigravity` SDK)
 ```bash
-# Sync locked environment (`uv.lock`) and launch the bridge CLI entry point:
+# Default (uses SDK if configured, otherwise falls back to authenticated agy CLI)
 uv run wow-agy-daemon --wow-dir "/Applications/World of Warcraft/_forever_"
 
-# On-Device LiteRT Local Model (`litert` extra — No API Key Required):
-uv run --extra litert wow-agy-daemon --backend sdk --litert-model ~/.litert-lm/models/gemma4-26b/model.litertlm
-
-# Local Ollama / LM Studio Server (No API Key Required):
+# Local Ollama / LM Studio server
 uv run wow-agy-daemon --backend sdk --local-openai-url http://localhost:11434/v1 --local-model gemma4:26b
+
+# On-device LiteRT model
+uv run --extra litert wow-agy-daemon --backend sdk --litert-model ~/.litert-lm/models/gemma4-26b/model.litertlm
 ```
 
-### Option B: Standard `python3` Zero-Dependency Mode (with `agy` CLI)
-If you already have `agy` CLI signed in and prefer running without installing any packages:
-```bash
-python3 bridge/daemon.py --wow-dir "/Applications/World of Warcraft/_forever_"
-```
+If you want to expose live player state and captured Lua errors directly to `agy` CLI or Antigravity IDE as MCP tools:
 
-### Option C (Optional): Register the WoW Forever MCP Server
-Expose live player state, captured Lua errors, and addon scaffolding directly to `agy` CLI or Antigravity IDE:
 ```bash
 agy mcp add wow-forever -- env WOW_FOREVER_DIR="/Applications/World of Warcraft/_forever_" uv --directory "$(pwd)" run wow-agy-mcp
 ```
 
----
+## In-Game Usage
 
-## How to Use In-Game
+Open the window from the minimap `AGY` button (or Blizzard's Addon Compartment menu) or type `/agy`.
 
-Click the **`AGY` minimap button** or type **`/agy`** in chat.
+### Asking questions or running code without reloading
 
-### Workflow 1: Zero-Reload Instant Q&A & Snippets (Clipboard Bridge)
-1. Type a question (or click **`🎯 Ask About Target`**, or `Shift+Click` / drag an item into the input box).
-2. Press **`Ctrl+Enter`** (or click **`Copy Request (No-Reload)`**) and press **`Ctrl+C` (`Cmd+C` on Mac)**.
-3. Wait for the desktop notification confirming the reply is copied to your clipboard.
-4. Click **`Paste Reply / Code`**, press **`Ctrl+V` (`Cmd+V`)**, and click **`Show Reply in Chat`** (or **`▶ Run Code`**) — zero loading screens!
+1. Type a prompt (or click a preset button, or `Shift+Click` / drag an item into the input box).
+2. Press `Ctrl+Enter` (or click `Copy Request (No-Reload)`) and copy with `Ctrl+C` (`Cmd+C` on macOS).
+3. After the desktop notification appears, click `Paste Reply / Code`, paste with `Ctrl+V` (`Cmd+V`), and click `Show Reply in Chat` or `Run Code`.
 
-### Workflow 2: Full Addon File Editing (`SavedVariables` Sync)
-1. Enter your addon creation or bug-fix request and click **`Send / Sync (/reload)`** (or **`Alt+Enter`**).
-2. WoW reloads to flush `SavedVariables` to disk while the local bridge edits files inside `Interface/AddOns/`.
-3. Once the desktop notification appears, run `/reload` (`Shift+Click` minimap button) to load the newly generated files and `Inbox.lua` summary.
+### Creating or editing addon files on disk
 
----
+1. Enter your request and click `Send / Sync (/reload)` (or press `Alt+Enter`).
+2. Wait for the desktop notification confirming the file edits finished, then run `/reload` (`Shift+Click` the minimap button) to load the changes.
 
-## Slash Commands & Shortcuts
+## Slash Commands
 
-| Command / Shortcut | Description |
+| Command | Description |
 | :--- | :--- |
-| `/agy` or `/wow-agy` | Toggle the main `wow-agy` AI Guide & Studio window |
-| `/wowask <q>` or `/wowq <q>` | Ask a WoW gameplay, quest, boss, or gear question |
-| `/agy about` | Print addon version, author (`JAICHANGPARK (Dreamwalker)`), and GitHub link |
-| `/agy lang <code\|auto>` | Switch UI & AI reply language live (e.g. `enUS`, `koKR`, `jaJP`, `zhCN`, `deDE`) |
-| `/agy lua` | Open Tab 2 (`Live Lua Studio`) |
-| `/agy errors` | Open Tab 3 (`Error Debugger`) |
-| `/agy run <code>` | Execute a one-line Lua snippet immediately |
-| `/agy undo` | Revert the most recently created or updated macro |
-| `/agy sync` | Safely run `/reload` outside combat |
-| `Ctrl+Enter` (Prompt / Editor) | Open Zero-Reload copy packet (Prompt) / Execute Lua snippet (Editor) |
-| `ESC → Options → Keybindings` | Bind hotkeys under **AddOns → Antigravity AI Guide & Studio** |
+| `/agy`, `/wow-agy` | Toggle the main window |
+| `/wowask <question>`, `/wowq <question>` | Queue a WoW gameplay question and open the window |
+| `/agy lua` | Open the Live Lua Studio tab |
+| `/agy errors` | Open the Lua Error Debugger tab |
+| `/agy run <code>` | Run a one-line Lua snippet |
+| `/agy lang <code\|auto>` | Change UI and AI response language (`enUS`, `koKR`, `jaJP`, `zhCN`, `zhTW`, `deDE`, `frFR`, `esES`, `esMX`, `ptBR`, `ruRU`, `itIT`) |
+| `/agy undo` | Revert the last macro created or updated by `wow-agy` |
+| `/agy about` | Print version, author, and repository URL |
+| `/agy sync` | Run `/reload` when out of combat |
 
----
+Keybindings can also be assigned in `ESC -> Options -> Keybindings -> AddOns`.
 
-## Running Tests
+## Policy Compliance
+
+`wow-agy` follows Blizzard's UI Add-On Development Policy:
+
+- Distributed free of charge under the MIT License with plain-text Lua and XML source files.
+- Contains no advertisements, paywalls, or donation prompts.
+- Respects `InCombatLockdown()` and `C_Secrets` restrictions; performs no gameplay or combat automation.
+
+## Tests
 
 ```bash
-python3 -m unittest discover -s tests -v
+uv run python -m unittest discover -s tests -v
 ```
 
 ## Author & License
 
-- **Author**: JAICHANGPARK (Dreamwalker)
-- **Repository**: https://github.com/JAICHANGPARK/wow-agy
-- **License**: Released under the [MIT License](LICENSE).
+- Author: JAICHANGPARK (Dreamwalker)
+- Repository: https://github.com/JAICHANGPARK/wow-agy
+- License: [MIT](LICENSE)
