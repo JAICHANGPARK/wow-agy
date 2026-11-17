@@ -1249,8 +1249,8 @@ wheels = [
 ]
 
 [[package]]
-name = "wow-addon-agy"
-version = "1.3.1"
+name = "wow-agy"
+version = "1.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "google-antigravity" },

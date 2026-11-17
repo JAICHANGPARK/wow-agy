@@ -3,14 +3,23 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "wow-addon-agy"
-version = "1.3.1"
+name = "wow-agy"
+version = "1.4.0"
 description = "In-game Google Antigravity (AGY) AI Guide & Lua Code Studio for World of Warcraft: Forever (Interface: 16001)"
 readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "JAICHANGPARK (Dreamwalker)" },
+]
 requires-python = ">=3.13"
 dependencies = [
     "google-antigravity>=0.1.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/JAICHANGPARK/wow-agy"
+Repository = "https://github.com/JAICHANGPARK/wow-agy"
+Issues = "https://github.com/JAICHANGPARK/wow-agy/issues"
 
 [project.optional-dependencies]
 litert = [

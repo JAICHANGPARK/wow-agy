@@ -1,8 +1,8 @@
-# Antigravity AI 가이드 & 코딩 스튜디오 — WoW Forever (`Interface: 16001`)
+# wow-agy — AI 가이드 & 코딩 스튜디오 (WoW Forever `Interface: 16001`)
 
 🌐 **언어 선택**: [English](../README.md) | **한국어** | [日本語](README.ja.md) | [简体中文](README.zh-CN.md)
 
-**월드 오브 워크래프트: 포에버(World of Warcraft: Forever)** 인게임에서 알트탭 없이 **Google Antigravity (`google-antigravity` SDK / `agy` CLI)** 에게 **퀘스트·보스 공략·아이템 비교 질문(Q&A)** 도 하고, **Lua 애드온 바이브 코딩·실시간 테스트·에러 디버깅**까지 수행할 수 있는 올인원 애드온 & 로컬 브릿지입니다.
+**월드 오브 워크래프트: 포에버(World of Warcraft: Forever)** 인게임에서 알트탭 없이 **Google Antigravity (`google-antigravity` SDK / `agy` CLI)** 에게 **퀘스트·보스 공략·아이템 비교 질문(Q&A)** 도 하고, **Lua 애드온 바이브 코딩·실시간 테스트·에러 디버깅**까지 수행할 수 있는 올인원 애드온(`WoWAGY`) & 로컬 브릿지입니다.
 
 ---
 
@@ -116,9 +116,18 @@ agy mcp add wow-forever -- env WOW_FOREVER_DIR="/Applications/World of Warcraft/
 
 | 명령어 | 설명 |
 | :--- | :--- |
-| `/agy` | 메인 스튜디오 창 열기/닫기 |
+| `/agy` 또는 `/wow-agy` | 메인 `wow-agy` 스튜디오 창 열기/닫기 |
 | `/와우질문 <질문>` / `/wowask <질문>` | 와우 공략·퀘스트·아이템 빠른 질문 |
+| `/agy about` | 애드온 버전, 제작자(`JAICHANGPARK (Dreamwalker)`), GitHub 주소 확인 |
 | `/agy lang <코드\|auto>` | 표시 언어 및 AI 답변 언어 즉시 변경 |
 | `/agy lua` / `/agy errors` | Live Lua 에디터 / 에러 디버거 탭 열기 |
 | `/agy undo` | 방금 생성하거나 덮어쓴 매크로를 이전 상태로 복구 |
 | `/agy sync` | 전투 외 상태에서 안전하게 `/reload` 실행 |
+
+---
+
+## 제작자 및 라이선스
+
+- **제작자 (Author)**: JAICHANGPARK (Dreamwalker)
+- **GitHub 저장소**: https://github.com/JAICHANGPARK/wow-agy
+- **라이선스**: [MIT License](../LICENSE)

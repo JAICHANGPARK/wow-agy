@@ -1,4 +1,4 @@
-# Antigravity AI ガイド & コードスタジオ — WoW Forever (`Interface: 16001`)
+# wow-agy — AI ガイド & コードスタジオ (WoW Forever `Interface: 16001`)
 
 🌐 **言語 (Languages)**: [English](../README.md) | [한국어](README.ko.md) | **日本語** | [简体中文](README.zh-CN.md)
 

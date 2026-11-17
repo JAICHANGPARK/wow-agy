@@ -26,17 +26,21 @@ fi
 ADDONS_DIR="$WOW_DIR/Interface/AddOns"
 mkdir -p "$ADDONS_DIR"
 
-TARGET_ADDON="$ADDONS_DIR/AntigravityWoW"
+# 구버전 폴더명이 남아있다면 자동 정리
+if [[ -L "$ADDONS_DIR/AntigravityWoW" || -d "$ADDONS_DIR/AntigravityWoW" ]]; then
+  rm -rf "$ADDONS_DIR/AntigravityWoW"
+fi
+
+TARGET_ADDON="$ADDONS_DIR/WoWAGY"
 if [[ -L "$TARGET_ADDON" || -d "$TARGET_ADDON" ]]; then
   rm -rf "$TARGET_ADDON"
 fi
 
-# 심볼릭 링크로 연결하여 브릿지가 Inbox.lua를 업데이트하면 인게임에 즉시 반영되도록 설정
-ln -s "$REPO_DIR/AddOn/AntigravityWoW" "$TARGET_ADDON"
+ln -s "$REPO_DIR/AddOn/WoWAGY" "$TARGET_ADDON"
 cp "$REPO_DIR/AGENTS.md" "$ADDONS_DIR/AGENTS.md"
 
-echo "✅ AntigravityWoW 애드온 설치 완료!"
-echo "   • 연결 경로 : $TARGET_ADDON -> $REPO_DIR/AddOn/AntigravityWoW"
+echo "✅ wow-agy (WoWAGY) 애드온 설치 완료!"
+echo "   • 연결 경로 : $TARGET_ADDON -> $REPO_DIR/AddOn/WoWAGY"
 echo "   • 규칙 복사 : $ADDONS_DIR/AGENTS.md"
 echo ""
 echo "다음 명령어로 로컬 Antigravity 브릿지 데몬을 실행하세요 (uv 권장):"

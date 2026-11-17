@@ -28,14 +28,19 @@ if (-not $WowDir -or -not (Test-Path $WowDir)) {
 $AddonsDir = Join-Path $WowDir "Interface\AddOns"
 New-Item -ItemType Directory -Force -Path $AddonsDir | Out-Null
 
-$TargetAddon = Join-Path $AddonsDir "AntigravityWoW"
+$LegacyAddon = Join-Path $AddonsDir "AntigravityWoW"
+if (Test-Path $LegacyAddon) {
+    Remove-Item -Recurse -Force $LegacyAddon
+}
+
+$TargetAddon = Join-Path $AddonsDir "WoWAGY"
 if (Test-Path $TargetAddon) {
     Remove-Item -Recurse -Force $TargetAddon
 }
 
-Copy-Item -Recurse -Force (Join-Path $RepoDir "AddOn\AntigravityWoW") $TargetAddon
+Copy-Item -Recurse -Force (Join-Path $RepoDir "AddOn\WoWAGY") $TargetAddon
 Copy-Item -Force (Join-Path $RepoDir "AGENTS.md") (Join-Path $AddonsDir "AGENTS.md")
 
-Write-Host "✅ AntigravityWoW 설치 완료: $TargetAddon"
+Write-Host "✅ wow-agy (WoWAGY) 설치 완료: $TargetAddon"
 Write-Host "브릿지 실행 (uv 권장): uv run wow-agy-daemon --wow-dir `"$WowDir`""
 Write-Host "(또는 Python 직접 실행): python `"$RepoDir\bridge\daemon.py`" --wow-dir `"$WowDir`""

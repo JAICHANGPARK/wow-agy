@@ -2,7 +2,7 @@ local addonName, ns = ...
 
 -- ============================================================================
 -- MinimapButton.lua
--- 드래그 가능한 미니맵 런처 버튼 + 대기 요청 / 캡처 에러 배지 표시
+-- Draggable minimap launcher button + Blizzard Official Addon Compartment hooks
 -- ============================================================================
 
 local function UpdateButtonPosition(btn, angleDeg)
@@ -12,6 +12,43 @@ local function UpdateButtonPosition(btn, angleDeg)
     local y = math.sin(rad) * radius
     btn:ClearAllPoints()
     btn:SetPoint("CENTER", Minimap, "CENTER", x, y)
+end
+
+local function PopulateTooltip(ownerFrame)
+    if not GameTooltip then return end
+    GameTooltip:SetOwner(ownerFrame, "ANCHOR_LEFT")
+    local ver = ns.GetAddonMeta and ns:GetAddonMeta("Version", ns.VERSION) or "1.4.0"
+    local author = ns.GetAddonMeta and ns:GetAddonMeta("Author", ns.DEFAULT_AUTHOR) or "JAICHANGPARK (Dreamwalker)"
+    GameTooltip:AddLine(string.format("|cff4285F4wow-agy|r |cff34A853v%s|r", ver))
+    GameTooltip:AddLine("By " .. author, 1.0, 0.82, 0.0)
+    GameTooltip:AddLine(ns.L.MINIMAP_TIP_LCLICK, 0.85, 0.85, 0.85)
+    GameTooltip:AddLine(ns.L.MINIMAP_TIP_RCLICK, 0.85, 0.85, 0.85)
+    GameTooltip:AddLine(ns.L.MINIMAP_TIP_SCLICK, 0.85, 0.85, 0.85)
+    GameTooltip:AddLine(ns.L.MINIMAP_TIP_DRAG, 0.7, 0.7, 0.7)
+    GameTooltip:Show()
+end
+
+-- Official Blizzard Addon Compartment callbacks (declared in WoWAGY.toc)
+function WoWAGY_OnAddonCompartmentClick(_, mouseButton)
+    if IsShiftKeyDown and IsShiftKeyDown() then
+        ns:SafeReloadUI()
+    elseif mouseButton == "RightButton" then
+        ns:ToggleMainFrame(true, 2)
+    else
+        ns:ToggleMainFrame()
+    end
+end
+
+function WoWAGY_OnAddonCompartmentEnter(_, menuButtonFrame)
+    if menuButtonFrame then
+        PopulateTooltip(menuButtonFrame)
+    end
+end
+
+function WoWAGY_OnAddonCompartmentLeave()
+    if GameTooltip then
+        GameTooltip:Hide()
+    end
 end
 
 function ns:UpdateMinimapBadge()
@@ -44,7 +81,7 @@ function ns:InitMinimapButton()
         return
     end
 
-    local btn = CreateFrame("Button", "AntigravityMinimapButton", Minimap, "BackdropTemplate")
+    local btn = CreateFrame("Button", "WoWAGYMinimapButton", Minimap, "BackdropTemplate")
     btn:SetSize(32, 32)
     btn:SetFrameStrata("MEDIUM")
     btn:SetFrameLevel(8)
@@ -91,24 +128,11 @@ function ns:InitMinimapButton()
     end)
 
     btn:SetScript("OnClick", function(_, mouseBtn)
-        if IsShiftKeyDown and IsShiftKeyDown() then
-            ns:SafeReloadUI()
-        elseif mouseBtn == "RightButton" then
-            ns:ToggleMainFrame(true, 2)
-        else
-            ns:ToggleMainFrame()
-        end
+        WoWAGY_OnAddonCompartmentClick(nil, mouseBtn)
     end)
 
     btn:SetScript("OnEnter", function(selfBtn)
-        if not GameTooltip then return end
-        GameTooltip:SetOwner(selfBtn, "ANCHOR_LEFT")
-        GameTooltip:AddLine("|cff4285F4Antigravity AI Guide & Studio|r (16001)")
-        GameTooltip:AddLine(ns.L.MINIMAP_TIP_LCLICK, 0.8, 0.8, 0.8)
-        GameTooltip:AddLine(ns.L.MINIMAP_TIP_RCLICK, 0.8, 0.8, 0.8)
-        GameTooltip:AddLine(ns.L.MINIMAP_TIP_SCLICK, 0.8, 0.8, 0.8)
-        GameTooltip:AddLine(ns.L.MINIMAP_TIP_DRAG, 0.8, 0.8, 0.8)
-        GameTooltip:Show()
+        PopulateTooltip(selfBtn)
     end)
     btn:SetScript("OnLeave", function()
         if GameTooltip then

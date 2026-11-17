@@ -122,8 +122,8 @@ LOCALES.enUS = {
     SETTINGS_OPEN_BTN  = "Open Antigravity Studio (/agy)",
     SETTINGS_RESET_POS = "Reset Window Position",
 
-    BINDING_HEADER = "Antigravity AI Guide & Studio",
-    BINDING_TOGGLE = "Toggle Antigravity Q&A & Studio",
+    BINDING_HEADER = "wow-agy (AI Guide & Studio)",
+    BINDING_TOGGLE = "Toggle wow-agy Q&A & Studio",
     BINDING_TARGET = "Quick Ask About Current Target",
     BINDING_LUA    = "Open Live Lua Studio",
 
@@ -249,8 +249,8 @@ LOCALES.koKR = {
     SETTINGS_OPEN_BTN  = "Antigravity 스튜디오 열기 (/agy)",
     SETTINGS_RESET_POS = "창 위치 중앙 초기화",
 
-    BINDING_HEADER = "Antigravity AI 가이드 & 코딩 스튜디오",
-    BINDING_TOGGLE = "Antigravity 질문 & 코딩 창 열기/닫기",
+    BINDING_HEADER = "wow-agy (AI 가이드 & 코딩 스튜디오)",
+    BINDING_TOGGLE = "wow-agy 질문 & 코딩 창 열기/닫기",
     BINDING_TARGET = "현재 타겟 몬스터/NPC 즉시 공략·드랍 질문",
     BINDING_LUA    = "Live Lua 코드 에디터 바로 열기",
 
@@ -660,10 +660,10 @@ ns.L = setmetatable({}, {
 })
 
 function ns:ApplyBindingTranslations()
-    BINDING_HEADER_ANTIGRAVITYWOW = self.L.BINDING_HEADER
-    BINDING_NAME_ANTIGRAVITYWOW_TOGGLE = self.L.BINDING_TOGGLE
-    BINDING_NAME_ANTIGRAVITYWOW_ASK_TARGET = self.L.BINDING_TARGET
-    BINDING_NAME_ANTIGRAVITYWOW_LIVE_LUA = self.L.BINDING_LUA
+    BINDING_HEADER_WOWAGY = self.L.BINDING_HEADER
+    BINDING_NAME_WOWAGY_TOGGLE = self.L.BINDING_TOGGLE
+    BINDING_NAME_WOWAGY_ASK_TARGET = self.L.BINDING_TARGET
+    BINDING_NAME_WOWAGY_LIVE_LUA = self.L.BINDING_LUA
 end
 
 ns:ApplyBindingTranslations()

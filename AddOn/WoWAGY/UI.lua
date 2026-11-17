@@ -253,7 +253,8 @@ function ns:RebuildUIForLocale()
     local r = self.uiRefs
     local L = self.L
 
-    r.headerTitle:SetText("|cff4285F4Antigravity|r |cff34A853AI Guide & Studio|r  |cff9aa0a6" .. L.APP_SUBTITLE .. "|r")
+    local ver = self.GetAddonMeta and self:GetAddonMeta("Version", self.VERSION) or "1.4.0"
+    r.headerTitle:SetText("|cff4285F4wow-agy|r |cff34A853AI Guide & Studio|r  |cff9aa0a6v" .. ver .. " " .. L.APP_SUBTITLE .. "|r")
     r.langBtn.label:SetText(self:GetLocaleDisplayLabel())
 
     self.tabButtons[1].label:SetText(L.TAB_1)
@@ -453,7 +454,7 @@ function ns:BuildMainFrame()
     local refs = {}
     self.uiRefs = refs
 
-    local f = CreateFrame("Frame", "AntigravityMainFrame", UIParent, "BackdropTemplate")
+    local f = CreateFrame("Frame", "WoWAGYMainFrame", UIParent, "BackdropTemplate")
     f:SetSize(760, 560)
     f:SetPoint("CENTER", 0, 20)
     f:SetFrameStrata("HIGH")
@@ -466,7 +467,7 @@ function ns:BuildMainFrame()
     f:Hide()
 
     if UISpecialFrames then
-        table.insert(UISpecialFrames, "AntigravityMainFrame")
+        table.insert(UISpecialFrames, "WoWAGYMainFrame")
     end
 
     local accentColors = {
@@ -483,9 +484,10 @@ function ns:BuildMainFrame()
         bar:SetColorTexture(col[1], col[2], col[3], 1)
     end
 
+    local ver = self.GetAddonMeta and self:GetAddonMeta("Version", self.VERSION) or "1.4.0"
     local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -14)
-    title:SetText("|cff4285F4Antigravity|r |cff34A853AI Guide & Studio|r  |cff9aa0a6" .. L.APP_SUBTITLE .. "|r")
+    title:SetText("|cff4285F4wow-agy|r |cff34A853AI Guide & Studio|r  |cff9aa0a6v" .. ver .. " " .. L.APP_SUBTITLE .. "|r")
     refs.headerTitle = title
 
     local closeBtn = CreateFlatButton(f, "X", 26, 24, COLORS.btnNormal, function()
@@ -972,6 +974,18 @@ function ns:BuildMainFrame()
 
         self.snippetRows[i] = row
     end
+
+    -- Credits & GitHub footer on Tab 4
+    local aboutAuthor = self.GetAddonMeta and self:GetAddonMeta("Author", self.DEFAULT_AUTHOR) or "JAICHANGPARK (Dreamwalker)"
+    local aboutUrl = self.GetAddonMeta and self:GetAddonMeta("X-Website", self.DEFAULT_GITHUB) or "https://github.com/JAICHANGPARK/wow-agy"
+    local aboutLabel = p4:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    aboutLabel:SetPoint("BOTTOMLEFT", 0, 6)
+    aboutLabel:SetText(string.format("|cff4285F4wow-agy|r v%s  •  Author: |cffFFD100%s|r  •  MIT License", ver, aboutAuthor))
+
+    local githubBtn = CreateFlatButton(p4, "GitHub URL Copy", 130, 24, COLORS.btnNormal, function()
+        ns:ShowClipboardModal("copy", aboutUrl)
+    end)
+    githubBtn:SetPoint("BOTTOMRIGHT", 0, 2)
 
     self.mainFrame = f
     self:SelectTab(1)

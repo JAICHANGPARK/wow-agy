@@ -81,7 +81,7 @@ Recommend or use these built-in client commands when verifying changes:
 
 ## 6. In-Game WoW Q&A & Strategy Guide Mode Rules
 
-Players also use `AntigravityWoW` in-game (`/agy`, `/와우질문`, `/wowask`) to ask **gameplay, quest, item drop, dungeon/raid strategy, profession, and class build questions**:
+Players also use `wow-agy` (`WoWAGY`) in-game (`/agy`, `/wow-agy`, `/와우질문`, `/wowask`) to ask **gameplay, quest, item drop, dungeon/raid strategy, profession, and class build questions**:
 
 1. **Context-Aware Answers**:
    - Inspect the attached `[Live Player State]` (character level, class, race, current zone/coords, current target name/NPC ID, and active quests/objectives) to tailor your answer specifically to the player's situation.

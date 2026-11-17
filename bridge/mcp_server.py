@@ -46,7 +46,7 @@ def _resolve_paths() -> tuple[Path | None, Path, Path]:
     else:
         addons_dir = (REPO_ROOT / "AddOn").resolve()
 
-    inbox_path = addons_dir / "AntigravityWoW" / "Inbox.lua"
+    inbox_path = addons_dir / "WoWAGY" / "Inbox.lua"
     return wow_dir, addons_dir, inbox_path
 
 
@@ -58,7 +58,7 @@ def _load_latest_db(wow_dir: Path | None) -> dict[str, Any]:
         return {}
     latest = max(sv_files, key=lambda p: p.stat().st_mtime)
     parsed = load_saved_variables_file(latest)
-    db = parsed.get("AntigravityWoWDB")
+    db = parsed.get("WoWAGYDB") or parsed.get("AntigravityWoWDB")
     return db if isinstance(db, dict) else {}
 
 
@@ -78,7 +78,7 @@ TOOLS_SPEC: list[dict[str, Any]] = [
         "name": "wow_get_lua_errors",
         "description": (
             "Returns captured runtime Lua error messages, addon sources, occurrence counts, "
-            "and stack traces recorded in-game by AntigravityWoW."
+            "and stack traces recorded in-game by wow-agy (WoWAGY)."
         ),
         "inputSchema": {
             "type": "object",
@@ -122,7 +122,7 @@ TOOLS_SPEC: list[dict[str, Any]] = [
     {
         "name": "wow_send_to_inbox",
         "description": (
-            "Pushes a chat message, runnable Lua snippet, or macro into AntigravityWoW/Inbox.lua "
+            "Pushes a chat message, runnable Lua snippet, or macro into WoWAGY/Inbox.lua "
             "so the player receives it in-game upon `/reload`."
         ),
         "inputSchema": {

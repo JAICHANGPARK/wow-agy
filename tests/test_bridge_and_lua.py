@@ -1,4 +1,4 @@
-"""Automated tests for AntigravityWoW Lua Addon structure, SavedVariables serde, Daemon, and MCP Server."""
+"""Automated tests for wow-agy (WoWAGY) Lua Addon structure, SavedVariables serde, Daemon, and MCP Server."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ from bridge.lua_serde import (
 from bridge.mcp_server import process_jsonrpc_message
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-ADDON_DIR = REPO_ROOT / "AddOn" / "AntigravityWoW"
+ADDON_DIR = REPO_ROOT / "AddOn" / "WoWAGY"
 
 
 class FakeRunner:
@@ -53,13 +53,17 @@ class FakeRunner:
 
 class TestAddonAndBridge(unittest.TestCase):
     def test_toc_manifest_and_forever_16001_compliance(self) -> None:
-        toc_path = ADDON_DIR / "AntigravityWoW.toc"
+        toc_path = ADDON_DIR / "WoWAGY.toc"
         self.assertTrue(toc_path.exists())
         toc_lines = toc_path.read_text(encoding="utf-8").splitlines()
 
-        # Verify WoW Forever Interface 16001 header
+        # Verify WoW Forever Interface 16001 header & official metadata
         self.assertIn("## Interface: 16001", toc_lines)
-        self.assertIn("## SavedVariables: AntigravityWoWDB", toc_lines)
+        self.assertIn("## SavedVariables: WoWAGYDB", toc_lines)
+        self.assertIn("## Author: JAICHANGPARK (Dreamwalker)", toc_lines)
+        self.assertIn("## X-Website: https://github.com/JAICHANGPARK/wow-agy", toc_lines)
+        self.assertIn("## X-License: MIT", toc_lines)
+        self.assertIn("## AddonCompartmentFunc: WoWAGY_OnAddonCompartmentClick", toc_lines)
 
         lua_files = [
             line.strip()
@@ -75,8 +79,8 @@ class TestAddonAndBridge(unittest.TestCase):
         self.assertTrue(bindings_xml.exists())
         tree = ET.parse(bindings_xml)
         binding_names = [el.attrib.get("name") for el in tree.getroot().findall("Binding")]
-        self.assertIn("ANTIGRAVITYWOW_TOGGLE", binding_names)
-        self.assertIn("ANTIGRAVITYWOW_ASK_TARGET", binding_names)
+        self.assertIn("WOWAGY_TOGGLE", binding_names)
+        self.assertIn("WOWAGY_ASK_TARGET", binding_names)
 
         forbidden_legacy_calls = [
             r"(?<!\.)\bGetSpellInfo\s*\(",
@@ -111,8 +115,8 @@ class TestAddonAndBridge(unittest.TestCase):
 
         sample_sv = f'''
         -- SavedVariables test comment
-        AntigravityWoWDB = {{
-            ["version"] = "1.0.0",
+        WoWAGYDB = {{
+            ["version"] = "1.4.0",
             ["nextSeq"] = 2,
             ["outbox"] = {{
                 {{
@@ -130,26 +134,26 @@ class TestAddonAndBridge(unittest.TestCase):
         }}
         '''
         parsed = parse_saved_variables(sample_sv)
-        db = parsed["AntigravityWoWDB"]
-        self.assertEqual(db["version"], "1.0.0")
+        db = parsed["WoWAGYDB"]
+        self.assertEqual(db["version"], "1.4.0")
         self.assertEqual(db["outbox"][0]["prompt"], "체력바 위치 옮겨줘")
         self.assertEqual(db["outbox"][0]["context"]["player"]["name"], "아서스")
 
         # Round-trip dump and re-parse
-        dumped = "AntigravityWoWDB = " + dump_lua_value(db)
+        dumped = "WoWAGYDB = " + dump_lua_value(db)
         reparsed = parse_saved_variables(dumped)
-        self.assertEqual(reparsed["AntigravityWoWDB"]["outbox"][0]["prompt"], "체력바 위치 옮겨줘")
+        self.assertEqual(reparsed["WoWAGYDB"]["outbox"][0]["prompt"], "체력바 위치 옮겨줘")
 
     def test_inbox_generation_and_daemon_polling(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             addons_dir = tmp_path / "Interface" / "AddOns"
-            inbox_path = addons_dir / "AntigravityWoW" / "Inbox.lua"
-            sv_path = tmp_path / "WTF" / "Account" / "TESTACC" / "SavedVariables" / "AntigravityWoW.lua"
+            inbox_path = addons_dir / "WoWAGY" / "Inbox.lua"
+            sv_path = tmp_path / "WTF" / "Account" / "TESTACC" / "SavedVariables" / "WoWAGY.lua"
             sv_path.parent.mkdir(parents=True, exist_ok=True)
 
             sv_content = '''
-            AntigravityWoWDB = {
+            WoWAGYDB = {
                 ["outbox"] = {
                     {
                         ["id"] = "req-999-0001",
@@ -315,12 +319,12 @@ class TestAddonAndBridge(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             addons_dir = tmp_path / "Interface" / "AddOns"
-            inbox_path = addons_dir / "AntigravityWoW" / "Inbox.lua"
-            sv_path = tmp_path / "WTF" / "Account" / "ACC" / "SavedVariables" / "AntigravityWoW.lua"
+            inbox_path = addons_dir / "WoWAGY" / "Inbox.lua"
+            sv_path = tmp_path / "WTF" / "Account" / "ACC" / "SavedVariables" / "WoWAGY.lua"
             sv_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Truncated mid-write file!
-            sv_path.write_text('AntigravityWoWDB = { ["outbox"] = { { ["id"] = "req-1"', encoding="utf-8")
+            sv_path.write_text('WoWAGYDB = { ["outbox"] = { { ["id"] = "req-1"', encoding="utf-8")
             daemon = CompanionDaemon(
                 addons_dir=addons_dir,
                 inbox_path=inbox_path,
@@ -336,7 +340,7 @@ class TestAddonAndBridge(unittest.TestCase):
 
             # Now WoW finishes writing the file: next poll MUST succeed!
             sv_path.write_text(
-                'AntigravityWoWDB = { ["outbox"] = { { ["id"] = "req-1", ["status"] = "pending", ["prompt"] = "테스트" } } }',
+                'WoWAGYDB = { ["outbox"] = { { ["id"] = "req-1", ["status"] = "pending", ["prompt"] = "테스트" } } }',
                 encoding="utf-8",
             )
             self.assertEqual(daemon.poll_saved_variables_once(), 1)
@@ -395,7 +399,7 @@ class TestAddonAndBridge(unittest.TestCase):
                 )
                 assert inbox_resp is not None
                 self.assertFalse(inbox_resp["result"]["isError"])
-                self.assertTrue((Path(tmp) / "AntigravityWoW" / "Inbox.lua").exists())
+                self.assertTrue((Path(tmp) / "WoWAGY" / "Inbox.lua").exists())
             finally:
                 if old_addons is None:
                     os.environ.pop("WOW_ADDONS_DIR", None)

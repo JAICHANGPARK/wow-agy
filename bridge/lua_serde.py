@@ -1,7 +1,7 @@
 """Pure-Python parser and serializer for World of Warcraft SavedVariables & Inbox.lua.
 
 Handles:
-- WoW SavedVariables tables (`AntigravityWoWDB = { ... }`)
+- WoW SavedVariables tables (`WoWAGYDB = { ... }`)
 - Raw UTF-8 Korean strings AND Lua decimal byte escapes (`\\235\\130\\152`)
 - Line/block Lua comments, nested array/dict tables, atomic Inbox.lua writes
 """
@@ -329,7 +329,7 @@ def write_inbox_lua(
     messages: list[dict[str, Any]],
     daemon_status: str = "online",
 ) -> None:
-    """Atomically write AddOn/AntigravityWoW/Inbox.lua for WoW /reload ingestion."""
+    """Atomically write AddOn/WoWAGY/Inbox.lua for WoW /reload ingestion."""
     target = Path(inbox_path)
     target.parent.mkdir(parents=True, exist_ok=True)
 

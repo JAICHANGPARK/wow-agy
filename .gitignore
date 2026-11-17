@@ -11,4 +11,4 @@ venv/
 .env
 *.egg-info/
 bridge/.daemon_state.json
-AddOn/AntigravityWoW/.inbox_*.lua
+AddOn/WoWAGY/.inbox_*.lua

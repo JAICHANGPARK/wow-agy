@@ -1,0 +1,58 @@
+## Interface: 16001
+## Title: |cff4285F4wow-agy|r |cff34A853AI Guide & Studio|r
+## Notes: In-game WoW Q&A Strategy Assistant & Antigravity Lua Code Studio for WoW Forever (/agy, /wow-agy, /wowask)
+## Title-koKR: |cff4285F4wow-agy|r |cff34A853AI 가이드 & 스튜디오|r
+## Notes-koKR: WoW Forever 전용 인게임 와우 질문(Q&A) 백과사전 + Antigravity 코딩 스튜디오 (/agy, /wow-agy, /와우질문)
+## Title-zhCN: |cff4285F4wow-agy|r |cff34A853AI 攻略与编程工作室|r
+## Notes-zhCN: 魔兽世界：永恒 游戏内 AI 攻略百科问答与 Lua 插件编程调试工作室 (/agy, /wow-agy, /wowask)
+## Title-zhTW: |cff4285F4wow-agy|r |cff34A853AI 攻略與編程工作室|r
+## Notes-zhTW: 魔獸世界：永恆 遊戲內 AI 攻略百科問答與 Lua 插件編程除錯工作室 (/agy, /wow-agy, /wowask)
+## Title-deDE: |cff4285F4wow-agy|r |cff34A853AI-Guide & Code-Studio|r
+## Notes-deDE: In-Game WoW-Q&A-Assistent & Antigravity Lua-Code-Studio für WoW Forever (/agy, /wow-agy, /wowask)
+## Title-frFR: |cff4285F4wow-agy|r |cff34A853Guide IA & Studio Lua|r
+## Notes-frFR: Assistant Q&R WoW en jeu & Studio de code Lua Antigravity pour WoW Forever (/agy, /wow-agy, /wowask)
+## Title-esES: |cff4285F4wow-agy|r |cff34A853Guía IA y Estudio Lua|r
+## Notes-esES: Asistente de preguntas de WoW y estudio de código Lua Antigravity en el juego (/agy, /wow-agy, /wowask)
+## Title-esMX: |cff4285F4wow-agy|r |cff34A853Guía IA y Estudio Lua|r
+## Notes-esMX: Asistente de preguntas de WoW y estudio de código Lua Antigravity en el juego (/agy, /wow-agy, /wowask)
+## Title-ptBR: |cff4285F4wow-agy|r |cff34A853Guia IA & Estúdio Lua|r
+## Notes-ptBR: Assistente de perguntas de WoW e estúdio de código Lua Antigravity no jogo (/agy, /wow-agy, /wowask)
+## Title-ruRU: |cff4285F4wow-agy|r |cff34A853ИИ-гид и Lua-студия|r
+## Notes-ruRU: Внутриигровой ИИ-помощник по WoW Forever и студия разработки Lua-аддонов (/agy, /wow-agy, /wowask)
+## Title-itIT: |cff4285F4wow-agy|r |cff34A853Guida IA & Studio Lua|r
+## Notes-itIT: Assistente Q&A di WoW in gioco e studio di programmazione Lua Antigravity (/agy, /wow-agy, /wowask)
+
+## Author: JAICHANGPARK (Dreamwalker)
+## Version: 1.4.0
+## SavedVariables: WoWAGYDB
+## IconTexture: Interface\Icons\INV_Misc_EngGizmos_20
+## Category: Development Tools
+## Category-koKR: 개발 도구
+## Category-zhCN: 开发工具
+## Category-zhTW: 開發工具
+## Category-deDE: Entwicklungstools
+## Category-frFR: Outils de développement
+## Category-esES: Herramientas de desarrollo
+## Category-esMX: Herramientas de desarrollo
+## Category-ptBR: Ferramentas de Desenvolvimento
+## Category-ruRU: Инструменты разработки
+## Category-itIT: Strumenti di sviluppo
+
+## AddonCompartmentFunc: WoWAGY_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: WoWAGY_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: WoWAGY_OnAddonCompartmentLeave
+
+## X-Website: https://github.com/JAICHANGPARK/wow-agy
+## X-Repository: https://github.com/JAICHANGPARK/wow-agy
+## X-Issues: https://github.com/JAICHANGPARK/wow-agy/issues
+## X-License: MIT
+
+Locales.lua
+Core.lua
+Inbox.lua
+Context.lua
+ErrorCatcher.lua
+Sandbox.lua
+UI.lua
+MinimapButton.lua
+Settings.lua

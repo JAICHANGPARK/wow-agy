@@ -2,11 +2,11 @@
 """Antigravity WoW Forever Companion Daemon.
 
 Watches:
-1. WoW SavedVariables (`WTF/Account/*/SavedVariables/AntigravityWoW.lua`) for queued prompts
+1. WoW SavedVariables (`WTF/Account/*/SavedVariables/WoWAGY.lua`) for queued prompts
 2. System Clipboard (optional `--clipboard`, enabled by default) for `AGY_REQ:{...}` packets
    so players can vibe-code & run Lua snippets in-game WITHOUT `/reload`!
 
-Writes replies & code back into `Interface/AddOns/AntigravityWoW/Inbox.lua` (and clipboard).
+Writes replies & code back into `Interface/AddOns/WoWAGY/Inbox.lua` (and clipboard).
 """
 
 from __future__ import annotations
@@ -133,7 +133,7 @@ def find_saved_variables_files(wow_flavor_dir: Path | None, explicit_sv: Path | 
     wtf_account = wow_flavor_dir / "WTF" / "Account"
     if not wtf_account.exists():
         return []
-    return sorted(wtf_account.glob("*/SavedVariables/AntigravityWoW.lua"))
+    return sorted(wtf_account.glob("*/SavedVariables/WoWAGY.lua"))
 
 
 class CompanionDaemon:
@@ -249,7 +249,7 @@ class CompanionDaemon:
             except OSError:
                 self.sv_mtimes[key] = file_sig
 
-            db = parsed.get("AntigravityWoWDB")
+            db = parsed.get("WoWAGYDB") or parsed.get("AntigravityWoWDB")
             if not isinstance(db, dict):
                 continue
 
@@ -400,7 +400,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--saved-vars",
         type=Path,
         default=None,
-        help="직접 지정할 WTF/.../SavedVariables/AntigravityWoW.lua 파일 경로",
+        help="직접 지정할 WTF/.../SavedVariables/WoWAGY.lua 파일 경로",
     )
     p.add_argument(
         "--backend",
@@ -493,7 +493,7 @@ def main() -> int:
     else:
         addons_dir = (REPO_ROOT / "AddOn").resolve()
 
-    inbox_path = addons_dir / "AntigravityWoW" / "Inbox.lua"
+    inbox_path = addons_dir / "WoWAGY" / "Inbox.lua"
     agents_md_path = REPO_ROOT / "AGENTS.md"
 
     runner = AntigravityBridgeRunner(

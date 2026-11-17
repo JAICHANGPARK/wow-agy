@@ -439,7 +439,7 @@ class AntigravityBridgeRunner:
             return snap
         for p in self.addons_dir.rglob("*"):
             if p.is_file() and p.suffix.lower() in (".lua", ".toc", ".xml"):
-                if p.name == "Inbox.lua" and p.parent.name == "AntigravityWoW":
+                if p.name == "Inbox.lua" and p.parent.name == "WoWAGY":
                     continue
                 try:
                     snap[str(p.relative_to(self.addons_dir))] = p.stat().st_mtime

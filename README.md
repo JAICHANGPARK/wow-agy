@@ -1,4 +1,4 @@
-# Antigravity AI Guide & Code Studio for WoW Forever (`Interface: 16001`)
+# wow-agy — AI Guide & Code Studio for WoW Forever (`Interface: 16001`)
 
 🌐 **Languages**: **English** | [한국어](docs/README.ko.md) | [日本語](docs/README.ja.md) | [简体中文](docs/README.zh-CN.md)
 
@@ -10,7 +10,7 @@ Ask gameplay questions (quest routes, boss mechanics, item drops, class builds),
 
 ## Blizzard Official UI Add-On Policy & ToU Compliance
 
-`AntigravityWoW` is engineered from the ground up to strictly comply with **Blizzard Entertainment's UI Add-On Development Policy** and **Terms of Use**:
+`wow-agy` (`WoWAGY`) is engineered from the ground up to strictly comply with **Blizzard Entertainment's UI Add-On Development Policy** and **Terms of Use**:
 
 - **100% Free & Open Source ([MIT License](LICENSE))**: No paywalls, subscriptions, premium tiers, in-game advertisements, or donation solicitations.
 - **100% Visible Plain-Text Lua/XML**: Zero obfuscated code, encrypted payloads, or external `.dll`/`.so` binaries.
@@ -59,8 +59,8 @@ Auto-detects all official Blizzard client locales (`GetLocale()`) and supports i
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/JAICHANGPARK/wow-addon-agy.git
-cd wow-addon-agy
+git clone https://github.com/JAICHANGPARK/wow-agy.git
+cd wow-agy
 ```
 
 ### 2. Install the Addon into WoW Forever
@@ -70,7 +70,7 @@ cd wow-addon-agy
 chmod +x ./scripts/install.sh
 ./scripts/install.sh "/Applications/World of Warcraft/_forever_"
 ```
-*(Creates a symlink to `AddOn/AntigravityWoW` and copies `AGENTS.md` into `Interface/AddOns/`.)*
+*(Creates a symlink to `AddOn/WoWAGY` and copies `AGENTS.md` into `Interface/AddOns/`.)*
 
 **Windows (PowerShell):**
 ```powershell
@@ -153,8 +153,9 @@ Click the **`AGY` minimap button** or type **`/agy`** in chat.
 
 | Command / Shortcut | Description |
 | :--- | :--- |
-| `/agy` or `/antigravity` | Toggle the main Antigravity AI Guide & Studio window |
+| `/agy` or `/wow-agy` | Toggle the main `wow-agy` AI Guide & Studio window |
 | `/wowask <q>` or `/wowq <q>` | Ask a WoW gameplay, quest, boss, or gear question |
+| `/agy about` | Print addon version, author (`JAICHANGPARK (Dreamwalker)`), and GitHub link |
 | `/agy lang <code\|auto>` | Switch UI & AI reply language live (e.g. `enUS`, `koKR`, `jaJP`, `zhCN`, `deDE`) |
 | `/agy lua` | Open Tab 2 (`Live Lua Studio`) |
 | `/agy errors` | Open Tab 3 (`Error Debugger`) |
@@ -172,6 +173,8 @@ Click the **`AGY` minimap button** or type **`/agy`** in chat.
 python3 -m unittest discover -s tests -v
 ```
 
-## License
+## Author & License
 
-Released under the [MIT License](LICENSE).
+- **Author**: JAICHANGPARK (Dreamwalker)
+- **Repository**: https://github.com/JAICHANGPARK/wow-agy
+- **License**: Released under the [MIT License](LICENSE).

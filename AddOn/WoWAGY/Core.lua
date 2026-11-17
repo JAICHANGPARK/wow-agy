@@ -1,10 +1,38 @@
 local addonName, ns = ...
 
-ns.ADDON_NAME = addonName or "AntigravityWoW"
-ns.VERSION = "1.3.0"
+ns.ADDON_NAME = addonName or "WoWAGY"
+ns.DISPLAY_NAME = "wow-agy"
+ns.VERSION = "1.4.0"
+ns.DEFAULT_AUTHOR = "JAICHANGPARK (Dreamwalker)"
+ns.DEFAULT_GITHUB = "https://github.com/JAICHANGPARK/wow-agy"
+ns.DEFAULT_LICENSE = "MIT"
 ns.EXPECTED_TOC = 16001
 
-AntigravityWoW = ns
+WoWAGY = ns
+
+function ns:GetAddonMeta(field, fallback)
+    if C_AddOns and C_AddOns.GetAddOnMetadata then
+        local ok, val = pcall(C_AddOns.GetAddOnMetadata, self.ADDON_NAME, field)
+        if ok and type(val) == "string" and val ~= "" then
+            return val
+        end
+    elseif GetAddOnMetadata then
+        local ok, val = pcall(GetAddOnMetadata, self.ADDON_NAME, field)
+        if ok and type(val) == "string" and val ~= "" then
+            return val
+        end
+    end
+    return fallback or ""
+end
+
+function ns:PrintAbout()
+    local ver = self:GetAddonMeta("Version", self.VERSION)
+    local author = self:GetAddonMeta("Author", self.DEFAULT_AUTHOR)
+    local url = self:GetAddonMeta("X-Website", self.DEFAULT_GITHUB)
+    local lic = self:GetAddonMeta("X-License", self.DEFAULT_LICENSE)
+    self:Print(string.format("|cff34A853%s|r v%s  |  Author: |cffFFD100%s|r  |  License: %s", self.DISPLAY_NAME, ver, author, lic))
+    self:Print("GitHub: |cff67D8EF" .. url .. "|r")
+end
 
 local DEFAULTS = {
     version = ns.VERSION,
@@ -44,7 +72,7 @@ end
 function ns:Print(msg)
     local text = self:SafeToString(msg, "")
     if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
-        pcall(DEFAULT_CHAT_FRAME.AddMessage, DEFAULT_CHAT_FRAME, "|cff4285F4[Antigravity]|r " .. text)
+        pcall(DEFAULT_CHAT_FRAME.AddMessage, DEFAULT_CHAT_FRAME, "|cff4285F4[wow-agy]|r " .. text)
     end
 end
 
@@ -312,8 +340,8 @@ pcall(eventFrame.RegisterEvent, eventFrame, "PLAYER_LOGOUT")
 
 eventFrame:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" and arg1 == ns.ADDON_NAME then
-        AntigravityWoWDB = CopyDefaults(DEFAULTS, AntigravityWoWDB)
-        ns.db = AntigravityWoWDB
+        WoWAGYDB = CopyDefaults(DEFAULTS, WoWAGYDB)
+        ns.db = WoWAGYDB
         if ns.ApplyBindingTranslations then
             ns:ApplyBindingTranslations()
         end
@@ -323,8 +351,8 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         end
     elseif event == "PLAYER_LOGIN" then
         if not ns.db then
-            AntigravityWoWDB = CopyDefaults(DEFAULTS, AntigravityWoWDB)
-            ns.db = AntigravityWoWDB
+            WoWAGYDB = CopyDefaults(DEFAULTS, WoWAGYDB)
+            ns.db = WoWAGYDB
         end
         if ns.ApplyBindingTranslations then
             ns:ApplyBindingTranslations()
@@ -357,9 +385,11 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
     end
 end)
 
-SLASH_ANTIGRAVITYWOW1 = "/agy"
-SLASH_ANTIGRAVITYWOW2 = "/antigravity"
-SlashCmdList["ANTIGRAVITYWOW"] = function(msg)
+SLASH_WOWAGY1 = "/agy"
+SLASH_WOWAGY2 = "/wow-agy"
+SLASH_WOWAGY3 = "/wowagy"
+SLASH_WOWAGY4 = "/antigravity"
+SlashCmdList["WOWAGY"] = function(msg)
     local cmd, rest = (msg or ""):match("^(%S*)%s*(.-)$")
     cmd = (cmd or ""):lower()
 
@@ -367,6 +397,8 @@ SlashCmdList["ANTIGRAVITYWOW"] = function(msg)
         if ns.ToggleMainFrame then
             ns:ToggleMainFrame()
         end
+    elseif cmd == "about" or cmd == "info" or cmd == "version" then
+        ns:PrintAbout()
     elseif cmd == "code" or cmd == "lua" then
         if ns.ToggleMainFrame then
             ns:ToggleMainFrame(true, 2)
@@ -403,7 +435,7 @@ SlashCmdList["ANTIGRAVITYWOW"] = function(msg)
             ns:UndoLastMacro()
         end
     elseif cmd == "help" then
-        ns:Print("Commands: /agy | /wowask <q> | /agy lua | /agy errors | /agy run <code> | /agy lang <code> | /agy undo | /agy sync")
+        ns:Print("Commands: /agy | /wow-agy | /wowask <q> | /agy about | /agy lua | /agy errors | /agy run <code> | /agy lang <code> | /agy undo | /agy sync")
     else
         ns:EnqueuePrompt(msg)
         if ns.ToggleMainFrame then
@@ -414,10 +446,10 @@ SlashCmdList["ANTIGRAVITYWOW"] = function(msg)
 end
 
 -- Multilingual Quick Q&A Slash Commands (/wowask, /와우질문, /wowq)
-SLASH_ANTIGRAVITYWOWASK1 = "/wowask"
-SLASH_ANTIGRAVITYWOWASK2 = "/와우질문"
-SLASH_ANTIGRAVITYWOWASK3 = "/wowq"
-SlashCmdList["ANTIGRAVITYWOWASK"] = function(msg)
+SLASH_WOWAGYASK1 = "/wowask"
+SLASH_WOWAGYASK2 = "/와우질문"
+SLASH_WOWAGYASK3 = "/wowq"
+SlashCmdList["WOWAGYASK"] = function(msg)
     local q = strtrim(msg or "")
     if q == "" then
         if ns.db and ns.db.settings then

@@ -1,0 +1,17 @@
+<Bindings>
+    <Binding name="WOWAGY_TOGGLE" header="WOWAGY" category="ADDONS">
+        if WoWAGY and WoWAGY.ToggleMainFrame then
+            WoWAGY:ToggleMainFrame()
+        end
+    </Binding>
+    <Binding name="WOWAGY_ASK_TARGET" category="ADDONS">
+        if WoWAGY and WoWAGY.QuickAskCurrentTarget then
+            WoWAGY:QuickAskCurrentTarget()
+        end
+    </Binding>
+    <Binding name="WOWAGY_LIVE_LUA" category="ADDONS">
+        if WoWAGY and WoWAGY.ToggleMainFrame then
+            WoWAGY:ToggleMainFrame(true, 2)
+        end
+    </Binding>
+</Bindings>

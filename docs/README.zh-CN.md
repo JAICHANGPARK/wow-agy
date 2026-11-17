@@ -1,4 +1,4 @@
-# Antigravity AI 攻略与编程工作室 — WoW Forever (`Interface: 16001`)
+# wow-agy — AI 攻略与编程工作室 (WoW Forever `Interface: 16001`)
 
 🌐 **语言选择 (Languages)**: [English](../README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | **简体中文**
 
