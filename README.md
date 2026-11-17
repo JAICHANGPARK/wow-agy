@@ -45,7 +45,7 @@ Auto-detects all official Blizzard client locales (`GetLocale()`) and supports i
 ## Prerequisites
 
 1. **World of Warcraft: Forever** client (`Interface: 16001`)
-2. **[`uv`](https://docs.astral.sh/uv/)** *(Recommended — manages Python & `google-antigravity` automatically without `pip`)* or **Python 3.10+**:
+2. **[`uv`](https://docs.astral.sh/uv/)** *(Recommended — manages **Python 3.15** & `google-antigravity` automatically)* or **Python 3.13+ (3.15 recommended)**:
    - Install `uv` (macOS / Linux): `curl -LsSf https://astral.sh/uv/install.sh | sh`
    - Install `uv` (Windows PS): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
 3. **Antigravity CLI (`agy`)** — **OR** **`google-antigravity` Python SDK**:

@@ -68,7 +68,7 @@ uv run wow-agy-daemon --check-auth
 - **方式3（Google Cloud / Vertex AI ADC）**: `gcloud auth application-default login` + `--vertex --project <ID>`。
 - **方式4（ローカルモデル：認証不要）**: LiteRT Gemma 4（`--litert-model`）または Ollama / LM Studio（`--local-openai-url`）。
 
-### 3. ローカルブリッジデーモンの起動（`uv` ネイティブ対応）
+### 3. ローカルブリッジデーモンの起動（`uv` + Python 3.15 ネイティブ対応）
 
 ```bash
 # A) 推奨：uv で自動環境同期＆起動（pip 不要！）

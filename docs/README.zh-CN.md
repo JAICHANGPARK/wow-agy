@@ -67,7 +67,7 @@ uv run wow-agy-daemon --check-auth
 - **方式 3（Google Cloud / Vertex AI ADC）**：运行 `gcloud auth application-default login` 并搭配 `--vertex --project <项目ID>`。
 - **方式 4（纯本地模型，免认证/零费用）**：使用 LiteRT Gemma 4 (`--litert-model`) 或本地 Ollama / LM Studio (`--local-openai-url`)。
 
-### 第三步：启动本地伴侣桥接守护进程（原生支持 `uv`）
+### 第三步：启动本地伴侣桥接守护进程（原生支持 `uv` + Python 3.15）
 
 ```bash
 # 方式 A（推荐）：使用 uv 一键同步环境并启动（无需手动 pip install！）

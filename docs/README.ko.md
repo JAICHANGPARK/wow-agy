@@ -76,9 +76,9 @@ uv run wow-agy-daemon --check-auth
 4. **방법 4 — 무인증 로컬 모델 모드 (계정·API 키 불필요)**:
    - 온디바이스 LiteRT Gemma 4 (`--litert-model`) 또는 로컬 Ollama / LM Studio (`--local-openai-url`) 사용 시 별도 인증 없이 무료로 작동합니다.
 
-### 3단계: 로컬 브릿지 데몬 실행 (`uv` 공식 지원)
+### 3단계: 로컬 브릿지 데몬 실행 (`uv` + Python 3.15 공식 지원)
 
-`pyproject.toml`과 `uv.lock`, 전용 CLI 엔트리포인트(`wow-agy-daemon`, `wow-agy-mcp`)가 내장되어 있어 `pip`나 수동 가상환경 설정 없이 **`uv run` 한 줄**로 바로 실행됩니다:
+`.python-version`(`3.15`), `pyproject.toml`(`>=3.13`), `uv.lock`, 전용 CLI 엔트리포인트(`wow-agy-daemon`, `wow-agy-mcp`)가 내장되어 있어 **`uv run` 한 줄**로 최신 **Python 3.15** 기반 환경에서 바로 실행됩니다:
 
 ```bash
 # [추천] uv 실행 — 가상환경 및 google-antigravity SDK 자동 동기화 후 즉시 실행!
