@@ -37,4 +37,5 @@ Copy-Item -Recurse -Force (Join-Path $RepoDir "AddOn\AntigravityWoW") $TargetAdd
 Copy-Item -Force (Join-Path $RepoDir "AGENTS.md") (Join-Path $AddonsDir "AGENTS.md")
 
 Write-Host "✅ AntigravityWoW 설치 완료: $TargetAddon"
-Write-Host "브릿지 실행: python `"$RepoDir\bridge\daemon.py`" --wow-dir `"$WowDir`""
+Write-Host "브릿지 실행 (uv 권장): uv run wow-agy-daemon --wow-dir `"$WowDir`""
+Write-Host "(또는 Python 직접 실행): python `"$RepoDir\bridge\daemon.py`" --wow-dir `"$WowDir`""

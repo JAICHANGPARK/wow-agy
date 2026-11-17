@@ -54,11 +54,11 @@ chmod +x ./scripts/install.sh
 可通过内置交互式向导一键完成配置或检查认证状态：
 
 ```bash
-# 运行交互式认证配置向导（引导 agy 登录或安全保存 GEMINI_API_KEY 至 .env）
-python3 bridge/daemon.py --setup-auth
+# 运行交互式认证配置向导（推荐使用 uv — 自动管理虚拟环境与 SDK）
+uv run wow-agy-daemon --setup-auth
 
 # 检查当前认证状态
-python3 bridge/daemon.py --check-auth
+uv run wow-agy-daemon --check-auth
 ```
 
 - **方式 1（安装 `agy` CLI 并登录谷歌账号，免 API Key）**：
@@ -67,16 +67,18 @@ python3 bridge/daemon.py --check-auth
 - **方式 3（Google Cloud / Vertex AI ADC）**：运行 `gcloud auth application-default login` 并搭配 `--vertex --project <项目ID>`。
 - **方式 4（纯本地模型，免认证/零费用）**：使用 LiteRT Gemma 4 (`--litert-model`) 或本地 Ollama / LM Studio (`--local-openai-url`)。
 
-### 第三步：启动本地伴侣桥接守护进程
+### 第三步：启动本地伴侣桥接守护进程（原生支持 `uv`）
 
 ```bash
-# 方式 A：自动使用已安装的 agy CLI（免配置 API Key）
-python3 bridge/daemon.py --wow-dir "/Applications/World of Warcraft/_forever_"
+# 方式 A（推荐）：使用 uv 一键同步环境并启动（无需手动 pip install！）
+uv run wow-agy-daemon --wow-dir "/Applications/World of Warcraft/_forever_"
 
-# 方式 B：使用官方 Google Antigravity Python SDK（支持云端 Gemini / 本地 Gemma 4 / Ollama）
-pip install -r requirements.txt
-export GEMINI_API_KEY="你的_API_KEY"  # https://aistudio.google.com/app/api-keys
-python3 bridge/daemon.py --backend sdk --wow-dir "/Applications/World of Warcraft/_forever_"
+# 方式 B：本地 LiteRT / Ollama 模式（免 API Key）
+uv run --extra litert wow-agy-daemon --backend sdk --litert-model ~/.litert-lm/models/gemma4-26b/model.litertlm
+uv run wow-agy-daemon --backend sdk --local-openai-url http://localhost:11434/v1 --local-model gemma4:26b
+
+# 方式 C：使用标准 python3 直接运行（搭配已登录的 agy CLI，零依赖）
+python3 bridge/daemon.py --wow-dir "/Applications/World of Warcraft/_forever_"
 ```
 
 ---

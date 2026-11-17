@@ -9,7 +9,6 @@ venv/
 
 # Secrets & local daemon runtime state
 .env
-uv.lock
 *.egg-info/
 bridge/.daemon_state.json
 AddOn/AntigravityWoW/.inbox_*.lua

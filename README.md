@@ -45,11 +45,13 @@ Auto-detects all official Blizzard client locales (`GetLocale()`) and supports i
 ## Prerequisites
 
 1. **World of Warcraft: Forever** client (`Interface: 16001`)
-2. **Python 3.10+** (`macOS`, `Windows`, or `Linux`)
+2. **[`uv`](https://docs.astral.sh/uv/)** *(Recommended — manages Python & `google-antigravity` automatically without `pip`)* or **Python 3.10+**:
+   - Install `uv` (macOS / Linux): `curl -LsSf https://astral.sh/uv/install.sh | sh`
+   - Install `uv` (Windows PS): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
 3. **Antigravity CLI (`agy`)** — **OR** **`google-antigravity` Python SDK**:
    - Install `agy` CLI on macOS / Linux: `curl -fsSL https://antigravity.google/cli/install.sh | bash`
    - Install `agy` CLI on Windows (PowerShell): `irm https://antigravity.google/cli/install.ps1 | iex`
-   - Or install Python SDK only: `pip install -r requirements.txt`
+   - Or sync Python SDK via `uv`: `uv sync` *(fallback: `pip install -r requirements.txt`)*
 
 ---
 
@@ -83,10 +85,10 @@ Run the built-in interactive authentication wizard anytime, or verify your curre
 
 ```bash
 # Guided interactive setup (launches `agy` login or saves GEMINI_API_KEY to a 0600 `.env` file)
-python3 bridge/daemon.py --setup-auth
+uv run wow-agy-daemon --setup-auth
 
 # Verify current authentication status
-python3 bridge/daemon.py --check-auth
+uv run wow-agy-daemon --check-auth
 ```
 
 1. **Option 1 — Antigravity CLI (`agy`) Google Sign-In (No API Key Needed)**:
@@ -104,30 +106,28 @@ python3 bridge/daemon.py --check-auth
 
 Because WoW's Lua sandbox blocks direct network or subprocess calls, run the lightweight local bridge alongside the game:
 
-### Option A: Zero-Config with `agy` CLI (Auto-Detected)
+### Option A: Recommended `uv` Workflow (Auto-installs Python & `google-antigravity` SDK)
 ```bash
-python3 bridge/daemon.py --wow-dir "/Applications/World of Warcraft/_forever_"
+# Sync locked environment (`uv.lock`) and launch the bridge CLI entry point:
+uv run wow-agy-daemon --wow-dir "/Applications/World of Warcraft/_forever_"
+
+# On-Device LiteRT Local Model (`litert` extra — No API Key Required):
+uv run --extra litert wow-agy-daemon --backend sdk --litert-model ~/.litert-lm/models/gemma4-26b/model.litertlm
+
+# Local Ollama / LM Studio Server (No API Key Required):
+uv run wow-agy-daemon --backend sdk --local-openai-url http://localhost:11434/v1 --local-model gemma4:26b
 ```
 
-### Option B: Google Antigravity Python SDK (`google-antigravity`)
+### Option B: Standard `python3` Zero-Dependency Mode (with `agy` CLI)
+If you already have `agy` CLI signed in and prefer running without installing any packages:
 ```bash
-pip install -r requirements.txt
-
-# 1) Cloud Gemini (API Key from https://aistudio.google.com/app/api-keys)
-export GEMINI_API_KEY="your-api-key"
-python3 bridge/daemon.py --backend sdk --wow-dir "/Applications/World of Warcraft/_forever_"
-
-# 2) On-Device Local Model via LiteRT (No API Key Required)
-python3 bridge/daemon.py --backend sdk --litert-model ~/.litert-lm/models/gemma4-26b/model.litertlm
-
-# 3) Local Ollama / LM Studio Server (No API Key Required)
-python3 bridge/daemon.py --backend sdk --local-openai-url http://localhost:11434/v1 --local-model gemma4:26b
+python3 bridge/daemon.py --wow-dir "/Applications/World of Warcraft/_forever_"
 ```
 
 ### Option C (Optional): Register the WoW Forever MCP Server
 Expose live player state, captured Lua errors, and addon scaffolding directly to `agy` CLI or Antigravity IDE:
 ```bash
-agy mcp add wow-forever -- env WOW_FOREVER_DIR="/Applications/World of Warcraft/_forever_" python3 "$(pwd)/bridge/mcp_server.py"
+agy mcp add wow-forever -- env WOW_FOREVER_DIR="/Applications/World of Warcraft/_forever_" uv --directory "$(pwd)" run wow-agy-mcp
 ```
 
 ---

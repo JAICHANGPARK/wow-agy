@@ -532,7 +532,8 @@ class AntigravityBridgeRunner:
         except ImportError:
             return (
                 "|cffEA4335[SDK Missing]|r `google-antigravity` package is not installed.\n"
-                "Run `pip install google-antigravity` or use `--backend cli` mode."
+                "Run `uv sync && uv run wow-agy-daemon --backend sdk` (or `pip install -r requirements.txt`), "
+                "or use `--backend cli` mode."
             )
 
         system_rules = ""

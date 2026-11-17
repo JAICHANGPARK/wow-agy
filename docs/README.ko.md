@@ -57,11 +57,11 @@ chmod +x ./scripts/install.sh
 대화형 인증 설정 마법사를 실행하면 누구나 쉽게 인증을 마칠 수 있습니다:
 
 ```bash
-# 대화형 인증 마법사 실행 (agy 로그인 또는 .env 파일에 API 키 안전 저장)
-python3 bridge/daemon.py --setup-auth
+# 대화형 인증 마법사 실행 (uv 권장 — Python 및 google-antigravity SDK 자동 세팅!)
+uv run wow-agy-daemon --setup-auth
 
 # 현재 인증 상태 정상 여부 확인
-python3 bridge/daemon.py --check-auth
+uv run wow-agy-daemon --check-auth
 ```
 
 1. **방법 1 — `agy` CLI 설치 및 구글 계정 로그인 (API 키 불필요, 가장 간편)**:
@@ -76,21 +76,28 @@ python3 bridge/daemon.py --check-auth
 4. **방법 4 — 무인증 로컬 모델 모드 (계정·API 키 불필요)**:
    - 온디바이스 LiteRT Gemma 4 (`--litert-model`) 또는 로컬 Ollama / LM Studio (`--local-openai-url`) 사용 시 별도 인증 없이 무료로 작동합니다.
 
-### 3단계: 로컬 브릿지 데몬 실행
+### 3단계: 로컬 브릿지 데몬 실행 (`uv` 공식 지원)
+
+`pyproject.toml`과 `uv.lock`, 전용 CLI 엔트리포인트(`wow-agy-daemon`, `wow-agy-mcp`)가 내장되어 있어 `pip`나 수동 가상환경 설정 없이 **`uv run` 한 줄**로 바로 실행됩니다:
 
 ```bash
-# 1) 기본 실행 (설치된 agy CLI 자동 감지 — API 키 설정 불필요)
-python3 bridge/daemon.py --wow-dir "/Applications/World of Warcraft/_forever_"
+# [추천] uv 실행 — 가상환경 및 google-antigravity SDK 자동 동기화 후 즉시 실행!
+uv run wow-agy-daemon --wow-dir "/Applications/World of Warcraft/_forever_"
 
-# 2) Google Antigravity Python SDK (클라우드 Gemini)
-pip install -r requirements.txt
-export GEMINI_API_KEY="발급받은_키"  # https://aistudio.google.com/app/api-keys
-python3 bridge/daemon.py --backend sdk --wow-dir "/Applications/World of Warcraft/_forever_"
+# 온디바이스 LiteRT 로컬 모델 사용 시 (--extra litert 자동 설치, API 키 불필요)
+uv run --extra litert wow-agy-daemon --backend sdk --litert-model ~/.litert-lm/models/gemma4-26b/model.litertlm
 
-# 3) Google Antigravity SDK 온디바이스 / 로컬 서버 (API 키 불필요)
-python3 bridge/daemon.py --backend sdk --litert-model ~/.litert-lm/models/gemma4-26b/model.litertlm
-python3 bridge/daemon.py --backend sdk --local-openai-url http://localhost:11434/v1 --local-model gemma4:26b
+# 로컬 Ollama / LM Studio 연결 시 (API 키 불필요)
+uv run wow-agy-daemon --backend sdk --local-openai-url http://localhost:11434/v1 --local-model gemma4:26b
+
+# (선택) MCP 서버 등록 (uv 연동)
+agy mcp add wow-forever -- env WOW_FOREVER_DIR="/Applications/World of Warcraft/_forever_" uv --directory "$(pwd)" run wow-agy-mcp
 ```
+
+> **`uv`가 아직 없다면?**  
+> - macOS / Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`  
+> - Windows (PS): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`  
+> *(또는 `agy` CLI만 쓰는 경우 기본 `python3 bridge/daemon.py --wow-dir ...` 로 무설치 실행도 가능합니다.)*
 
 ---
 

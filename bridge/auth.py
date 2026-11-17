@@ -241,7 +241,7 @@ def run_interactive_auth_setup(repo_root: Path) -> int:
             return 1
         write_env_key_safely(dotenv_path, {"GEMINI_API_KEY": key})
         print(f"\n✅ Saved masked key ({mask_secret(key)}) to {dotenv_path} (permissions 0600, git-ignored)!")
-        print("You can now run: python3 bridge/daemon.py --backend sdk")
+        print("You can now run: uv run wow-agy-daemon --backend sdk")
         return 0
 
     if choice == "3":

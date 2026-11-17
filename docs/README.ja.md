@@ -55,11 +55,11 @@ chmod +x ./scripts/install.sh
 対話型の認証セットアップウィザードで簡単に設定・確認できます：
 
 ```bash
-# 対話型セットアップウィザード（agy ログイン または .env への APIキー安全保存）
-python3 bridge/daemon.py --setup-auth
+# 対話型セットアップウィザード（uv 推奨 — 仮想環境＆SDKを自動構築）
+uv run wow-agy-daemon --setup-auth
 
 # 現在の認証ステータス確認
-python3 bridge/daemon.py --check-auth
+uv run wow-agy-daemon --check-auth
 ```
 
 - **方式1（`agy` CLI のインストール＆Google ログイン・APIキー不要）**:
@@ -68,16 +68,18 @@ python3 bridge/daemon.py --check-auth
 - **方式3（Google Cloud / Vertex AI ADC）**: `gcloud auth application-default login` + `--vertex --project <ID>`。
 - **方式4（ローカルモデル：認証不要）**: LiteRT Gemma 4（`--litert-model`）または Ollama / LM Studio（`--local-openai-url`）。
 
-### 3. ローカルブリッジデーモンの起動
+### 3. ローカルブリッジデーモンの起動（`uv` ネイティブ対応）
 
 ```bash
-# A) agy CLI 自動検出モード（APIキー設定不要）
-python3 bridge/daemon.py --wow-dir "/Applications/World of Warcraft/_forever_"
+# A) 推奨：uv で自動環境同期＆起動（pip 不要！）
+uv run wow-agy-daemon --wow-dir "/Applications/World of Warcraft/_forever_"
 
-# B) Google Antigravity Python SDK モード（クラウド Gemini / ローカル Gemma 4 / Ollama 対応）
-pip install -r requirements.txt
-export GEMINI_API_KEY="あなたのAPIキー"  # https://aistudio.google.com/app/api-keys
-python3 bridge/daemon.py --backend sdk --wow-dir "/Applications/World of Warcraft/_forever_"
+# B) オンデバイス LiteRT / ローカル Ollama モード（APIキー不要）
+uv run --extra litert wow-agy-daemon --backend sdk --litert-model ~/.litert-lm/models/gemma4-26b/model.litertlm
+uv run wow-agy-daemon --backend sdk --local-openai-url http://localhost:11434/v1 --local-model gemma4:26b
+
+# C) 標準 python3 直接実行（agy CLI 利用時・追加パッケージ不要）
+python3 bridge/daemon.py --wow-dir "/Applications/World of Warcraft/_forever_"
 ```
 
 ---
