@@ -17,7 +17,7 @@ end
 local function PopulateTooltip(ownerFrame)
     if not GameTooltip then return end
     GameTooltip:SetOwner(ownerFrame, "ANCHOR_LEFT")
-    local ver = ns.GetAddonMeta and ns:GetAddonMeta("Version", ns.VERSION) or "1.4.0"
+    local ver = ns.GetAddonMeta and ns:GetAddonMeta("Version", ns.VERSION) or "2026.11.17"
     local author = ns.GetAddonMeta and ns:GetAddonMeta("Author", ns.DEFAULT_AUTHOR) or "JAICHANGPARK (Dreamwalker)"
     GameTooltip:AddLine(string.format("|cff4285F4wow-agy|r |cff34A853v%s|r", ver))
     GameTooltip:AddLine("By " .. author, 1.0, 0.82, 0.0)

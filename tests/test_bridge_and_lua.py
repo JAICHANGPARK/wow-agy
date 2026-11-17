@@ -61,6 +61,7 @@ class TestAddonAndBridge(unittest.TestCase):
         self.assertIn("## Interface: 16001", toc_lines)
         self.assertIn("## SavedVariables: WoWAGYDB", toc_lines)
         self.assertIn("## Author: JAICHANGPARK (Dreamwalker)", toc_lines)
+        self.assertIn("## Version: 2026.11.17", toc_lines)
         self.assertIn("## X-Website: https://github.com/JAICHANGPARK/wow-agy", toc_lines)
         self.assertIn("## X-License: MIT", toc_lines)
         self.assertIn("## AddonCompartmentFunc: WoWAGY_OnAddonCompartmentClick", toc_lines)
@@ -116,7 +117,7 @@ class TestAddonAndBridge(unittest.TestCase):
         sample_sv = f'''
         -- SavedVariables test comment
         WoWAGYDB = {{
-            ["version"] = "1.4.0",
+            ["version"] = "2026.11.17",
             ["nextSeq"] = 2,
             ["outbox"] = {{
                 {{
@@ -135,7 +136,7 @@ class TestAddonAndBridge(unittest.TestCase):
         '''
         parsed = parse_saved_variables(sample_sv)
         db = parsed["WoWAGYDB"]
-        self.assertEqual(db["version"], "1.4.0")
+        self.assertEqual(db["version"], "2026.11.17")
         self.assertEqual(db["outbox"][0]["prompt"], "체력바 위치 옮겨줘")
         self.assertEqual(db["outbox"][0]["context"]["player"]["name"], "아서스")
 

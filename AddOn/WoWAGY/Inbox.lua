@@ -7,8 +7,8 @@ local addonName, ns = ...
 -- ============================================================================
 
 ns.InboxPayload = {
-    bridgeVersion = "1.3.0",
-    updatedAt = "2026-11-17 20:35:00",
+    bridgeVersion = "2026.11.17",
+    updatedAt = "2026-11-17 21:30:00",
     daemonStatus = "ready",
     messages = {
         {

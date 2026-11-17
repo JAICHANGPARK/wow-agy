@@ -334,7 +334,7 @@ def write_inbox_lua(
     target.parent.mkdir(parents=True, exist_ok=True)
 
     payload = {
-        "bridgeVersion": "1.0.0",
+        "bridgeVersion": "2026.11.17",
         "updatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
         "daemonStatus": daemon_status,
         "messages": messages[-25:],  # Keep Inbox lightweight

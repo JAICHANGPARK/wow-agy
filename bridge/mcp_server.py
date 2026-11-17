@@ -285,7 +285,7 @@ def process_jsonrpc_message(req: dict[str, Any]) -> dict[str, Any] | None:
                 "capabilities": {"tools": {}},
                 "serverInfo": {
                     "name": "antigravity-wow-forever-mcp",
-                    "version": "1.0.0",
+                    "version": "2026.11.17",
                 },
             },
         }

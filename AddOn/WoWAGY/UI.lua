@@ -253,7 +253,7 @@ function ns:RebuildUIForLocale()
     local r = self.uiRefs
     local L = self.L
 
-    local ver = self.GetAddonMeta and self:GetAddonMeta("Version", self.VERSION) or "1.4.0"
+    local ver = self.GetAddonMeta and self:GetAddonMeta("Version", self.VERSION) or "2026.11.17"
     r.headerTitle:SetText("|cff4285F4wow-agy|r |cff34A853AI Guide & Studio|r  |cff9aa0a6v" .. ver .. " " .. L.APP_SUBTITLE .. "|r")
     r.langBtn.label:SetText(self:GetLocaleDisplayLabel())
 
@@ -484,7 +484,7 @@ function ns:BuildMainFrame()
         bar:SetColorTexture(col[1], col[2], col[3], 1)
     end
 
-    local ver = self.GetAddonMeta and self:GetAddonMeta("Version", self.VERSION) or "1.4.0"
+    local ver = self.GetAddonMeta and self:GetAddonMeta("Version", self.VERSION) or "2026.11.17"
     local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -14)
     title:SetText("|cff4285F4wow-agy|r |cff34A853AI Guide & Studio|r  |cff9aa0a6v" .. ver .. " " .. L.APP_SUBTITLE .. "|r")

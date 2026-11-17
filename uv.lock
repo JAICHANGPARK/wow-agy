@@ -1250,7 +1250,7 @@ wheels = [
 
 [[package]]
 name = "wow-agy"
-version = "1.4.0"
+version = "2026.11.17"
 source = { editable = "." }
 dependencies = [
     { name = "google-antigravity" },

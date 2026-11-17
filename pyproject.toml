@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wow-agy"
-version = "1.4.0"
+version = "2026.11.17"
 description = "In-game Google Antigravity (AGY) AI Guide & Lua Code Studio for World of Warcraft: Forever (Interface: 16001)"
 readme = "README.md"
 license = { text = "MIT" }

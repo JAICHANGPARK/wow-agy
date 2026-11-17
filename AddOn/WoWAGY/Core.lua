@@ -2,7 +2,7 @@ local addonName, ns = ...
 
 ns.ADDON_NAME = addonName or "WoWAGY"
 ns.DISPLAY_NAME = "wow-agy"
-ns.VERSION = "1.4.0"
+ns.VERSION = "2026.11.17"
 ns.DEFAULT_AUTHOR = "JAICHANGPARK (Dreamwalker)"
 ns.DEFAULT_GITHUB = "https://github.com/JAICHANGPARK/wow-agy"
 ns.DEFAULT_LICENSE = "MIT"

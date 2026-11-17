@@ -23,7 +23,7 @@
 ## Notes-itIT: Assistente Q&A di WoW in gioco e studio di programmazione Lua Antigravity (/agy, /wow-agy, /wowask)
 
 ## Author: JAICHANGPARK (Dreamwalker)
-## Version: 1.4.0
+## Version: 2026.11.17
 ## SavedVariables: WoWAGYDB
 ## IconTexture: Interface\Icons\INV_Misc_EngGizmos_20
 ## Category: Development Tools
