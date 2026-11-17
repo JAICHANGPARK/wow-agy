@@ -148,4 +148,5 @@ uv run python -m unittest discover -s tests -v
 
 - Author: JAICHANGPARK (Dreamwalker)
 - Repository: https://github.com/JAICHANGPARK/wow-agy
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
 - License: [MIT](LICENSE)

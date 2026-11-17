@@ -256,6 +256,7 @@ class TestAddonAndBridge(unittest.TestCase):
     def test_multilingual_readme_docs_and_license_integrity(self) -> None:
         doc_files = [
             REPO_ROOT / "LICENSE",
+            REPO_ROOT / "CHANGELOG.md",
             REPO_ROOT / "README.md",
             REPO_ROOT / "docs" / "README.ko.md",
             REPO_ROOT / "docs" / "README.ja.md",

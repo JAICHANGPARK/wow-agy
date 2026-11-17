@@ -138,4 +138,5 @@ uv run python -m unittest discover -s tests -v
 
 - 제작자: JAICHANGPARK (Dreamwalker)
 - 저장소: https://github.com/JAICHANGPARK/wow-agy
+- 변경 이력: [CHANGELOG.md](../CHANGELOG.md)
 - 라이선스: [MIT](../LICENSE)
