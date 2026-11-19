@@ -431,7 +431,28 @@ class TestAddonAndBridge(unittest.TestCase):
                 )
                 assert inbox_resp is not None
                 self.assertFalse(inbox_resp["result"]["isError"])
-                self.assertTrue((Path(tmp) / "WoWAGY" / "Inbox.lua").exists())
+                inbox_file = Path(tmp) / "WoWAGY" / "Inbox.lua"
+                self.assertTrue(inbox_file.exists())
+
+                # Second MCP delivery must append rather than wipe the first message
+                inbox_resp_2 = process_jsonrpc_message(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 5,
+                        "method": "tools/call",
+                        "params": {
+                            "name": "wow_send_to_inbox",
+                            "arguments": {
+                                "message": "두 번째 MCP 메시지!",
+                            },
+                        },
+                    }
+                )
+                assert inbox_resp_2 is not None
+                self.assertFalse(inbox_resp_2["result"]["isError"])
+                inbox_content = inbox_file.read_text(encoding="utf-8")
+                self.assertIn("MCP 테스트 완료!", inbox_content)
+                self.assertIn("두 번째 MCP 메시지!", inbox_content)
             finally:
                 if old_addons is None:
                     os.environ.pop("WOW_ADDONS_DIR", None)
@@ -538,6 +559,13 @@ class TestAddonAndBridge(unittest.TestCase):
             )
             self.assertIn("--model|gemini-4-carbon-high", turn.raw_text)
             self.assertIn("--effort|medium", turn.raw_text)
+
+            # Verify unsupported-model error produces a clear localized hint
+            ko_err = AntigravityBridgeRunner._format_friendly_error(
+                RuntimeError("404 model 'bad-model' not found"), "koKR", 180
+            )
+            self.assertIn("모델 미지원", ko_err)
+            self.assertIn("/agy model auto", ko_err)
 
 
 if __name__ == "__main__":

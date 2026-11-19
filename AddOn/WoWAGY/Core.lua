@@ -362,6 +362,9 @@ function ns:IngestInbox()
 end
 
 function ns:EnqueuePrompt(promptText, extraMeta)
+    if not self.db or type(self.db.settings) ~= "table" then
+        return nil
+    end
     if not promptText or strtrim(promptText) == "" then
         self:Print(self.L.MSG_EMPTY_PROMPT)
         return nil

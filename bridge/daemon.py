@@ -15,6 +15,7 @@ import argparse
 import json
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import time
@@ -78,7 +79,12 @@ def read_clipboard() -> str:
             return res.stdout if res.returncode == 0 else ""
         if system == "Windows":
             res = subprocess.run(
-                ["powershell", "-NoProfile", "-Command", "Get-Clipboard -Raw"],
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Clipboard -Raw",
+                ],
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -86,6 +92,17 @@ def read_clipboard() -> str:
                 timeout=3,
             )
             return res.stdout if res.returncode == 0 else ""
+        if system == "Linux":
+            for cmd in (
+                ["wl-paste", "--no-newline"],
+                ["xclip", "-selection", "clipboard", "-o"],
+                ["xsel", "--clipboard", "--output"],
+            ):
+                if shutil.which(cmd[0]):
+                    res = subprocess.run(
+                        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=2
+                    )
+                    return res.stdout if res.returncode == 0 else ""
     except Exception:
         return ""
     return ""
@@ -101,9 +118,27 @@ def write_clipboard(text: str) -> bool:
             return proc.returncode == 0
         if system == "Windows":
             proc = subprocess.run(
-                ["clip"], input=text, text=True, encoding="utf-16le", timeout=3
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    "[Console]::InputEncoding = [System.Text.Encoding]::UTF8; Set-Clipboard -Value ([Console]::In.ReadToEnd())",
+                ],
+                input=text,
+                text=True,
+                encoding="utf-8",
+                timeout=3,
             )
             return proc.returncode == 0
+        if system == "Linux":
+            for cmd in (
+                ["wl-copy"],
+                ["xclip", "-selection", "clipboard", "-i"],
+                ["xsel", "--clipboard", "--input"],
+            ):
+                if shutil.which(cmd[0]):
+                    proc = subprocess.run(cmd, input=text, text=True, encoding="utf-8", timeout=2)
+                    return proc.returncode == 0
     except Exception:
         return False
     return False

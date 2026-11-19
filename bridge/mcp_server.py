@@ -28,7 +28,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from bridge.agy_runner import scaffold_forever_addon_files
 from bridge.daemon import auto_detect_wow_flavor_dir, find_saved_variables_files
-from bridge.lua_serde import load_saved_variables_file, write_inbox_lua
+from bridge.lua_serde import load_saved_variables_file, parse_saved_variables, write_inbox_lua
 
 
 MCP_PROTOCOL_VERSION = "2024-11-05"
@@ -225,16 +225,20 @@ def handle_tool_call(name: str, arguments: dict[str, Any]) -> str:
 
     if name == "wow_send_to_inbox":
         existing_msgs: list[dict[str, Any]] = []
+        existing_models: list[dict[str, str]] | None = None
         if inbox_path.exists():
             try:
                 raw = inbox_path.read_text(encoding="utf-8")
                 marker = "ns.InboxPayload ="
                 idx = raw.find(marker)
                 if idx != -1:
-                    parsed = load_saved_variables_file("InboxPayload = " + raw[idx + len(marker) :])
+                    parsed = parse_saved_variables("InboxPayload = " + raw[idx + len(marker) :])
                     payload = parsed.get("InboxPayload")
-                    if isinstance(payload, dict) and isinstance(payload.get("messages"), list):
-                        existing_msgs = list(payload["messages"])
+                    if isinstance(payload, dict):
+                        if isinstance(payload.get("messages"), list):
+                            existing_msgs = list(payload["messages"])
+                        if isinstance(payload.get("availableModels"), list):
+                            existing_models = list(payload["availableModels"])
             except Exception:
                 existing_msgs = []
 
@@ -262,7 +266,12 @@ def handle_tool_call(name: str, arguments: dict[str, Any]) -> str:
             "filesChanged": [],
         }
         existing_msgs.append(new_msg)
-        write_inbox_lua(inbox_path, existing_msgs, daemon_status="mcp-connected")
+        write_inbox_lua(
+            inbox_path,
+            existing_msgs,
+            daemon_status="mcp-connected",
+            available_models=existing_models,
+        )
         return f"Delivered message ({msg_id}) to {inbox_path}. Run `/reload` in WoW Forever to view."
 
     raise ValueError(f"Unknown MCP tool: {name}")

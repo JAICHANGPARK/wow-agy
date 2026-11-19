@@ -150,25 +150,37 @@ local function SafeGetTargetInfo()
     }
 
     pcall(function()
-        info.name = tostring(UnitName("target") or "Unknown")
+        local rawName = UnitName("target")
+        if rawName and not ns:IsSecretValue(rawName) then
+            info.name = ns:SafeToString(rawName, "Unknown")
+        end
     end)
     pcall(function()
-        info.level = tonumber(UnitLevel("target")) or -1
+        local rawLevel = UnitLevel("target")
+        if rawLevel ~= nil and not ns:IsSecretValue(rawLevel) then
+            info.level = tonumber(rawLevel) or -1
+        end
     end)
     if UnitClassification then
         pcall(function()
-            info.classification = tostring(UnitClassification("target") or "normal")
+            local rawClass = UnitClassification("target")
+            if rawClass and not ns:IsSecretValue(rawClass) then
+                info.classification = ns:SafeToString(rawClass, "normal")
+            end
         end)
     end
     if UnitCreatureType then
         pcall(function()
-            info.creatureType = tostring(UnitCreatureType("target") or "")
+            local rawType = UnitCreatureType("target")
+            if rawType and not ns:IsSecretValue(rawType) then
+                info.creatureType = ns:SafeToString(rawType, "")
+            end
         end)
     end
     if UnitGUID then
         pcall(function()
             local guid = UnitGUID("target")
-            if type(guid) == "string" then
+            if type(guid) == "string" and not ns:IsSecretValue(guid) then
                 local unitType, _, _, _, _, npcIdStr = strsplit("-", guid)
                 if (unitType == "Creature" or unitType == "Vehicle") and npcIdStr then
                     info.npcID = tonumber(npcIdStr) or 0

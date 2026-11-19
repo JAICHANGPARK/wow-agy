@@ -525,6 +525,11 @@ class AntigravityBridgeRunner:
                 return "|cffEA4335[인증 실패]|r Antigravity 인증이 만료되었거나 API 키가 유효하지 않습니다. 터미널에서 `uv run wow-agy-daemon --setup-auth` 를 실행해 재인증해 주세요."
             return "|cffEA4335[Authentication Error]|r Invalid or expired credentials. Run `uv run wow-agy-daemon --setup-auth` in your terminal."
 
+        if "model" in low and ("404" in low or "not found" in low or "invalid" in low or "unsupported" in low):
+            if is_ko:
+                return "|cffEA4335[모델 미지원]|r 선택한 모델 ID를 현재 백엔드에서 사용할 수 없습니다. 인게임에서 `/agy model auto` 로 초기화하거나 다른 모델을 선택해 주세요."
+            return "|cffEA4335[Unsupported Model]|r The selected model ID is unavailable on the current backend. Run `/agy model auto` in-game or choose another model."
+
         if isinstance(exc, ConnectionError) or "connection refused" in low or "name or service not known" in low or "network" in low:
             if is_ko:
                 return "|cffEA4335[네트워크/로컬 서버 연결 실패]|r 인터넷 연결 또는 로컬 모델 서버(Ollama/LM Studio) 실행 상태를 확인해 주세요."
